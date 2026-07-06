@@ -191,7 +191,7 @@ Div<Output = T> + DivAssign + Neg<Output = T> + Clone + Value + PartialOrd> Matr
     /// ```
     /// use solver::matrix::Matrix;
     /// let A = Matrix {elements: vec![1,0,0,1], rows: 2, colums:2};
-    /// assert_eq!(A.find_pivot(1), 1);
+    /// assert_eq!(A.find_pivot(1), Some(1));
     /// ```
     pub fn find_pivot(&self, row: usize) -> Option<usize> { 
         let items = self.row(row);
@@ -354,4 +354,40 @@ Div<Output = T> + DivAssign + Neg<Output = T> + Clone + Value + PartialOrd> Matr
     pub fn adjoint(&self) -> Matrix<T> {self.clone()}
     
 }
+
+/// Creates an identity matrix of dimension N for a certain type
+/// # Examples
+/// ```
+/// use solver::matrix::{Matrix, IdentityMatrix};
+/// let a = f64::imat(2);
+/// assert_eq!(a, Matrix {elements: vec![1.0,0.0,0.0,1.0], rows: 2, colums: 2})
+/// ```
+pub trait IdentityMatrix: 
+From<bool> + 
+Add<Output = Self> + AddAssign + 
+Sub<Output = Self> + SubAssign +
+Mul<Output = Self> + MulAssign +
+Div<Output = Self> + DivAssign + 
+Neg<Output = Self> + Clone + Value + PartialOrd {
+    fn imat(size: usize) -> Matrix<Self>;
+}
+
+
+impl<T: 
+From<bool> + 
+Add<Output = Self> + AddAssign + 
+Sub<Output = Self> + SubAssign +
+Mul<Output = Self> + MulAssign +
+Div<Output = Self> + DivAssign + 
+Neg<Output = Self> + Clone + Value + PartialOrd> IdentityMatrix for T {
+    fn imat(size: usize) -> Matrix<Self>{ 
+        let mut identity = Matrix { elements: vec![Self::from(false); size*size], rows: size, colums: size};
+        for element in 0..size {
+            identity.set(element, element, Self::from(true));
+        }
+        identity
+    }
+}
+
+
 
