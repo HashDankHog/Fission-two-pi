@@ -28,7 +28,7 @@ pub enum EchelonForm {
 /// assert_eq!(A.solve_for(B), Matrix {vec![1,1], rows:2, colums: 1});
 /// ```
 #[derive(PartialEq, Debug, Clone)]
-pub struct Matrix<T: 
+pub struct Matrix<T: From<bool> + 
 Add<Output = T> + AddAssign + 
 Sub<Output = T> + SubAssign +
 Mul<Output = T> + MulAssign +
@@ -37,7 +37,7 @@ Div<Output = T> + DivAssign + Neg<Output = T> + Clone + Value + PartialOrd> {
     pub rows: usize,
     pub colums: usize,
 }
-impl <T: 
+impl <T: From<bool> + 
 Add<Output = T> + AddAssign + 
 Sub<Output = T> + SubAssign +
 Mul<Output = T> + MulAssign +
@@ -344,10 +344,77 @@ Div<Output = T> + DivAssign + Neg<Output = T> + Clone + Value + PartialOrd> Matr
         self.iterate(|row, colum| self.element(row, colum).clone() * scale.clone())
     }
 
-    /// not implemented yet due to general lazieness
-    pub fn transpose(&self) -> Matrix<T> {self.clone()}
-    /// not implemented yet due to general lazieness
-    pub fn inverse(&self) -> Matrix<T> {self.clone()}
+    /// Transposes a Matrix
+    /// # Examples
+    /// ```
+    /// use solver::matrix::Matrix;
+    /// let a = Matrix{ elements: vec![1,2,3,
+    ///                                4,5,6], rows: 2, colums: 3};
+    /// assert_eq!(a.transpose(), Matrix{elements: vec![1,4,2,5,3,6], rows: 3, colums: 2})
+    /// ```
+    pub fn transpose(&self) -> Matrix<T> {
+        let result = Matrix {elements: vec![self.element(0,0).clone(); self.colums* self.rows], rows: self.colums, colums: self.rows};
+        result.iterate(|row, colum| self.element(colum, row).clone())
+    }
+
+    /// Finds the inverse of a square matrix
+    /// returns none if the matrix is not square
+    /// # Examples
+    /// ```
+    /// use solver::matrix::Matrix;
+    /// let a = Matrix {elements: vec![2.0,1.0,1.0,3.0], rows: 2, colums: 2};
+    /// assert_eq!(a.inverse().unwrap().elements, vec![0.6, -0.2, -0.2, 0.4]);
+    /// ```
+    pub fn inverse(&self) -> Option<Matrix<T>> {
+        if self.rows != self.colums { return None }
+        let mut temp = self.clone();
+        let mut inverse = T::imat(self.rows);
+
+        for row in 0..(self.rows-1) {
+            //the mapping here is a way to get around the fact that abs is not a generic trait
+            //we cannot use arg_min because of the edge case of rows that already have a 0 element
+            let row_2 = arg_max(&temp.colum(row).iter().map(|x| (*x).clone()*(*x).clone()).collect::<Vec<_>>()[row..])+row;
+            temp.swap_row(row, row_2);
+            inverse.swap_row(row, row_2); //when I swap back to &vec<T>: look into clone_into()
+            let pivot = temp.element(row, row);
+            match pivot.clone().value() {
+                0.0 => {},
+                _ => {
+                    for row_2 in (row+1)..self.rows {
+                        let scale = temp.element(row_2,row)/pivot.clone();
+                        temp.add_row(row_2, row, -scale.clone());
+                        inverse.add_row(row_2, row, -scale);
+                    }
+                }
+            }
+        }
+        let rows = self.rows;
+        for row in (1..=rows).map(|x| rows - x) {
+            
+            let pivot_value;
+            match temp.find_pivot(row) {
+                Some(pivot) => {
+                    pivot_value = temp.row(row)[pivot].clone();
+                    temp.scale_row(row, pivot_value.clone()/(pivot_value.clone()*pivot_value.clone()));
+                    inverse.scale_row(row, pivot_value.clone()/(pivot_value.clone()*pivot_value.clone())); //this is the closest I can get rn to writing 1/pivot_value since generics are hard and annoying
+                    for row_2 in row+1..rows {
+                        let p = temp.find_pivot(row_2);
+                        match p {
+                            Some(x) => {
+                                let scale = -temp.element(row,x);
+                                temp.add_row(row, row_2, scale.clone());
+                                inverse.add_row(row, row_2, scale);
+                            },
+                            None => {}
+                        }
+                    }
+                },
+                None => {}
+            }
+        }
+        Some(inverse)
+    }
+
     /// not implemented yet due to general lazieness
     pub fn determinant(&self) -> Matrix<T> {self.clone()}
     /// not implemented yet due to general lazieness
@@ -389,5 +456,4 @@ Neg<Output = Self> + Clone + Value + PartialOrd> IdentityMatrix for T {
     }
 }
 
-
-
+pub struct Jacobian;
