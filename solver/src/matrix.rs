@@ -10,7 +10,7 @@
 //  - fix matrix so it is implemented for more than just parameter, ideally parameter and f64, it might be the case that I have to revert all of this code
 //  - bc its too slow which would suck ass and balls
 /* */
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign, Neg};
+use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::vec::{arg_max, dot_prod};
 use crate::Value;
 pub enum EchelonForm {
@@ -29,19 +29,19 @@ pub enum EchelonForm {
 /// ```
 #[derive(PartialEq, Debug, Clone)]
 pub struct Matrix<T: From<bool> + 
-Add<Output = T> + AddAssign + 
-Sub<Output = T> + SubAssign +
-Mul<Output = T> + MulAssign +
-Div<Output = T> + DivAssign + Neg<Output = T> + Clone + Value + PartialOrd> {
+Add<Output = T>  + 
+Sub<Output = T>  +
+Mul<Output = T>  +
+Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> {
     pub elements: Vec<T>, //this shouldnt be public but for now idk how to fix ts since assert_eq needs it to be
     pub rows: usize,
     pub colums: usize,
 }
 impl <T: From<bool> + 
-Add<Output = T> + AddAssign + 
-Sub<Output = T> + SubAssign +
-Mul<Output = T> + MulAssign +
-Div<Output = T> + DivAssign + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
+Add<Output = T>  + 
+Sub<Output = T>  +
+Mul<Output = T>  +
+Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     //NOTE: most of the methods here make heavy use of clone. The reason this is not a huge issue 
     // for performance is that for primitive types, Rust implements a trivial clone which is equivilent to copy
 
@@ -431,10 +431,10 @@ Div<Output = T> + DivAssign + Neg<Output = T> + Clone + Value + PartialOrd> Matr
 /// ```
 pub trait IdentityMatrix: 
 From<bool> + 
-Add<Output = Self> + AddAssign + 
-Sub<Output = Self> + SubAssign +
-Mul<Output = Self> + MulAssign +
-Div<Output = Self> + DivAssign + 
+Add<Output = Self>  + 
+Sub<Output = Self> +
+Mul<Output = Self> +
+Div<Output = Self> + 
 Neg<Output = Self> + Clone + Value + PartialOrd {
     fn imat(size: usize) -> Matrix<Self>;
 }
@@ -442,10 +442,10 @@ Neg<Output = Self> + Clone + Value + PartialOrd {
 
 impl<T: 
 From<bool> + 
-Add<Output = Self> + AddAssign + 
-Sub<Output = Self> + SubAssign +
-Mul<Output = Self> + MulAssign +
-Div<Output = Self> + DivAssign + 
+Add<Output = Self> + 
+Sub<Output = Self> +
+Mul<Output = Self> +
+Div<Output = Self> + 
 Neg<Output = Self> + Clone + Value + PartialOrd> IdentityMatrix for T {
     fn imat(size: usize) -> Matrix<Self>{ 
         let mut identity = Matrix { elements: vec![Self::from(false); size*size], rows: size, colums: size};
