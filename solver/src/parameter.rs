@@ -27,7 +27,14 @@ impl Parameter {
         self.expression = simplify(&self.expression);
     }
 }
-
+impl From<bool> for Parameter {
+    fn from(value: bool) -> Self {
+        match value{
+            true => Parameter { expression: (vec![String::from("1")]), value: (1.0) },
+            false => Parameter { expression: (vec![String::from("0")]), value: (0.0) }
+        }
+    }
+}
 impl Into<f64> for Parameter{
     fn into(self) -> f64 {
         self.value
