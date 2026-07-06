@@ -318,7 +318,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     }
     
     /// performs addition of matrices
-    pub fn add_matrix(&self, matrix: &Matrix<T>) -> Option<Matrix<T>> { 
+    pub fn add(&self, matrix: &Matrix<T>) -> Option<Matrix<T>> { 
         if self.rows != matrix.rows || self.colums != matrix.colums {
             return None
         }
@@ -329,7 +329,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
 
     /// multiplies matrices
     pub fn mult(&self, matrix: &Matrix<T>) -> Option<Matrix<T>> { 
-        if self.rows != matrix.rows || self.colums != matrix.colums {
+        if self.colums != matrix.rows {
             return None
         }
         let result = Matrix {elements: vec![self.element(0,0).clone(); self.rows * matrix.colums], rows: self.rows, colums: matrix.colums};
@@ -416,7 +416,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     }
 
     /// not implemented yet due to general lazieness
-    pub fn determinant(&self) -> Matrix<T> {self.clone()}
+    pub fn determinant(&self) -> T {self.element(0,0).clone()}
     /// not implemented yet due to general lazieness
     pub fn adjoint(&self) -> Matrix<T> {self.clone()}
     
