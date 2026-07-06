@@ -2,14 +2,10 @@
 //! Module for matrix and vector operations. 
 
 
-//having a dedicated matrix structure rather than just Vec<Vec<f64>> makes it easier to prevent errors when declaring matrices
-//it also allows for easy implementation of matrix operations
-// NOTE: the rows and colums attributes might be unnesescary, but at the same time I am not sure
-//TODO
-//  - add, in a different file, the ability to round to a certain number of digits
-//  - fix matrix so it is implemented for more than just parameter, ideally parameter and f64, it might be the case that I have to revert all of this code
-//  - bc its too slow which would suck ass and balls
-/* */
+
+/* TODO
+    - impl simplify for Matrix<Parameter>
+*/
 use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::vec::{arg_max, dot_prod};
 use crate::Value;

@@ -11,9 +11,7 @@ use std::ops::{Add, Sub, Mul};
 /// assert_eq!(dot_prod(&A, &A), Some(2.0));
 /// ```
 /// # Errors
-/// If one of the vecs is a different length than the other, the function will return an error
-//TODO: this function almost definetly doesn't work for vectors of length one which is an issue
-// TODO: fix so it returns an option instead of a result
+/// If one of the vecs is a different length than the other, the function will return None
 pub fn dot_prod<T: Mul<Output = T> + Add<Output = T> + Clone>(vec_1: &Vec<T>, vec_2: &Vec<T>) -> Option<T> {
     match vec_2.len() {
         l if l == vec_1.len() => Some({
@@ -40,8 +38,7 @@ pub fn dot_prod<T: Mul<Output = T> + Add<Output = T> + Clone>(vec_1: &Vec<T>, ve
 /// assert_eq!(cross_prod(&A,&B), Some(vec![0.0,0.0,1.0]));
 /// ```
 /// # Errors
-/// If either one of the vectors are not of length 3, the function will return an error
-// TODO: fix so it returns an option instead of a result
+/// If either one of the vectors are not of length 3, the function will return None
 pub fn cross_prod<T: Mul<Output = T> + Sub<Output = T> + Clone>(vec_1: &Vec<T>, vec_2: &Vec<T>) -> Option<Vec<T>> {
     match vec_1.len() {
         3 if vec_2.len() == 3 => { Some(vec![
