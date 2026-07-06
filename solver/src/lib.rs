@@ -3,7 +3,8 @@ pub mod parameter;
 pub mod parse;
 pub mod geometry;
 pub mod vec;
-
+//TODO: remove and replace with From
+/// # THIS WILL BE REMOVED SHORTLY
 /// This trait is just a way to convert different generic numeric types into a common type,
 /// which can be used by the matrix
 /// With the exception of the parameter type, value is defined as:

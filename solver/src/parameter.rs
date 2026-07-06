@@ -1,8 +1,15 @@
 use crate::parse::{interpret, simplify};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 
+/*TODO: traits
+<T: From<bool> + 
+ + AddAssign + 
+ + SubAssign +
+ + MulAssign +
+ + DivAssign + Neg<Output = T> + Value + PartialOrd>
+*/
 
 //TODO: add parameterSet
 
@@ -20,6 +27,13 @@ impl Parameter {
         self.expression = simplify(&self.expression);
     }
 }
+
+impl Into<f64> for Parameter{
+    fn into(self) -> f64 {
+        self.value
+    }
+}
+
 impl Default for Parameter {
     fn default() -> Self {
         Parameter { expression: vec![String::from("0")], value: 0.0 }
@@ -73,6 +87,42 @@ impl Div for Parameter {
         }
     }
 }
+
+impl Neg for Parameter {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let mut expression = self.expression.clone();
+        expression.push(String::from("-1"));
+        expression.push(String::from("*"));
+        Self {
+            expression: expression,
+            value: self.value * -1.0
+        }
+    }
+}
+
+impl PartialOrd for Parameter {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.value.partial_cmp(&other.value)
+    }
+    fn lt(&self, other: &Self) -> bool {
+        if self.value < other.value { return true; }
+        false
+    }
+    fn le(&self, other: &Self) -> bool {
+        if self.value <= other.value { return true; }
+        false
+    }
+    fn gt(&self, other: &Self) -> bool {
+        if self.value > other.value { return true; }
+        false
+    }
+    fn ge(&self, other: &Self) -> bool {
+        if self.value >= other.value { return true; }
+        false
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
