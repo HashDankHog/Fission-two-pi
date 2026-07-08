@@ -1,7 +1,7 @@
 use crate::parse::{interpret, simplify};
-use std::cell::RefCell;
-use std::rc::Rc;
+use dyn_clone::DynClone; //TODO: create my own hand rolled version once I understand why it works
 use std::ops::{Add, Sub, Mul, Div, Neg};
+
 
 /*TODO: traits
 <T: From<bool> + 
@@ -13,28 +13,49 @@ use std::ops::{Add, Sub, Mul, Div, Neg};
 
 //TODO: add parameterSet
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct Parameter {
-    pub expression: Vec<String>,
-    pub value: f64,
-}
-impl Parameter {
-    pub fn update_value(&mut self, parameters: &Vec<Rc<RefCell<Parameter>>>) { 
-        self.value = interpret(&self.expression, parameters,1)
-    }
+dyn_clone::clone_trait_object!(Expression);
+//from here to line 27 was written by claude
+//TODO: replace with my own implementation, if possible
+pub trait Expression: Fn(Vec<f64>) -> f64 + DynClone {}
 
-    pub fn simplify_expression(&mut self) {
-        self.expression = simplify(&self.expression);
-    }
-}
+
+impl<T> Expression for T
+where
+    T: 'static + Fn(Vec<f64>) -> f64 + Clone,
+{}
+// TODO: rewrite this doc segment to take advantage of code hiding
+/// Arguably the core of the entirity of Parametrox
+/// Internally, Parameter is just a unit struct that wraps around a trait object for a closure of Fn(Vec<f64>) -> f64
+/// The power of this is that by getting around rusts orpahns rules and using a parser, we can evaluate arbitrary expressions at runtime
+/// # Examples
+/// ```
+/// use solver::parameter::Parameter;
+/// 
+/// // here we define our set of inputs
+/// let mut p = vec![0.0,1.0,2.0];
+/// 
+/// //box around the closure is nesscesary due to how rust handles trait objects
+/// let x0 = Parameter(Box::new(|p| p[0] + 1.0));
+/// 
+/// // lets define another output parameter
+/// let x1 = Parameter(Box::new(|p| p[[1] + 1.0));
+/// 
+/// assert_eq!(x0(p), 1.0);
+/// assert_eq!(x1(p),2.0);
+/// assert_eq!((x0/x1)(p), 0.5);
+/// ```
+pub struct Parameter(Box<dyn Expression>);
+
 impl From<bool> for Parameter {
     fn from(value: bool) -> Self {
-        match value{
-            true => Parameter { expression: (vec![String::from("1")]), value: (1.0) },
-            false => Parameter { expression: (vec![String::from("0")]), value: (0.0) }
+        match value {
+            true =>  Parameter(Box::new(|_p| 1.0)),
+            false => Parameter(Box::new(|_p| 0.0))
         }
     }
 }
+//this is going to be hard to implement
+//since it might force me to add a value item to the parameter struct and I dont want to do that
 impl Into<f64> for Parameter{
     fn into(self) -> f64 {
         self.value
@@ -43,68 +64,42 @@ impl Into<f64> for Parameter{
 
 impl Default for Parameter {
     fn default() -> Self {
-        Parameter { expression: vec![String::from("0")], value: 0.0 }
+        Parameter(Box::new(move |_p| 0.0))
     }
 }
+
 impl Add for Parameter {
     type Output = Self;
-    fn add(self, rhs: Self) -> Self { //will probably change to pointers but thats wierd
-        let mut expression = self.expression.clone(); //unnessecary?
-        expression.extend(rhs.expression);
-        expression.push(String::from("+"));
-        Self {
-            expression: expression,
-            value: self.value + rhs.value,
-        }
+    fn add(self, rhs: Self) -> Self { 
+        Parameter(Box::new(move |p| self.0(p.clone()) + rhs.0(p)))
     }
 }
+
 impl Sub for Parameter {
     type Output = Self;
-    fn sub(self, rhs: Self) -> Self { //will probably change to pointers but thats wierd
-        let mut expression = self.expression.clone(); //unnessecary?
-        expression.extend(rhs.expression);
-        expression.push(String::from("-"));
-        Self {
-            expression: expression,
-            value: self.value - rhs.value,
-        }
+    fn sub(self, rhs: Self) -> Self { 
+        Parameter(Box::new(move |p| self.0(p.clone()) - rhs.0(p)))
     }
 }
+
 impl Mul for Parameter {
     type Output = Self;
-    fn mul(self, rhs: Self) -> Self { //will probably change to pointers but thats wierd
-        let mut expression = self.expression.clone(); //unnessecary?
-        expression.extend(rhs.expression);
-        expression.push(String::from("*"));
-        Self {
-            expression: expression,
-            value: self.value * rhs.value,
-        }
+    fn mul(self, rhs: Self) -> Self {
+        Parameter(Box::new(move |p| self.0(p.clone()) * rhs.0(p)))
     }
 }
+
 impl Div for Parameter {
     type Output = Self;
-    fn div(self, rhs: Self) -> Self { //will probably change to pointers but thats wierd
-        let mut expression = self.expression.clone(); //unnessecary?
-        expression.extend(rhs.expression);
-        expression.push(String::from("/"));
-        Self {
-            expression: expression,
-            value: self.value / rhs.value,
-        }
+    fn div(self, rhs: Self) -> Self {
+        Parameter(Box::new(move |p| self.0(p.clone()) / rhs.0(p)))
     }
 }
 
 impl Neg for Parameter {
     type Output = Self;
     fn neg(self) -> Self::Output {
-        let mut expression = self.expression.clone();
-        expression.push(String::from("-1"));
-        expression.push(String::from("*"));
-        Self {
-            expression: expression,
-            value: self.value * -1.0
-        }
+        Parameter(Box::new(move |p| self.0(p.clone()) * -1.0))
     }
 }
 
