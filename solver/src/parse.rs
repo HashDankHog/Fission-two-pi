@@ -10,7 +10,7 @@ TODO:
 */
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::LazyLock};
-use crate::parameter;
+use crate::{parameter::Parameter, parse::Token::Operator};
 
 static MNEMONICS: [(&str, &str); 4] = [ ("sin", "s"),
                                         ("cos", "c"),
@@ -27,139 +27,63 @@ static MNEMONICS: [(&str, &str); 4] = [ ("sin", "s"),
         ('c', 4),
         ('t', 4),
     ]));
-enum TokenState {
+#[derive(Clone)]
+enum Token {
     Beginning,
-    Constant,
-    Parameter,
-    Operator,
-    Parantheses,
+    Number(f64),
+    Parameter(&str),
+    Operator{op: &str, precidence: u8},
+    Parantheses(char),
 }
-
-
-pub fn tokenize(raw_expression: &String) -> Vec<String> {
-    let mut expression = raw_expression.clone(); // clone might make this more inneficient than my original solution 
-    
-    for (from, to) in MNEMONICS {
-        expression = expression.replace(from, to);
-    }
-    expression.make_ascii_lowercase();
-    expression = expression.replace(" ", "");
-
-    let mut tokens: Vec<String> = Vec::new();
-    let mut token = String::new();
-    let mut token_type = TokenState::Beginning;
-
-    for character in expression.chars() {
-        match token_type {
-            TokenState::Beginning => {
-                token.push(character);
-                match character {
-                    '0'..='9' => token_type = TokenState::Constant,
-                    'p' => token_type = TokenState::Parameter,
-                    '(' => token_type = TokenState::Parantheses,
-                    character if OPERATORS.contains(character) => {
-                        //inelegant way to handle prefix expressions because it will accept non prefix ones too
-                        token = String::from(character);
-                        token_type = TokenState::Operator;
-                    }
-                    _ => panic!("invalid expression"),
+impl Token {
+    const MUL: Self::Operator = Self::Operator { op: "*", precidence: 2 };
+    fn next(&self, token: &Token) -> Result<Self, &'static str> {
+        match self {
+            Self::Beginning => Ok(token.clone()),
+            Self::Number(_) => {
+                match token {
+                    Self::Operator { op: _ , precidence: _ } => Ok(token.clone()),
+                    Self::Parameter(_) | Self::Parantheses('(') => Ok(MUL),
+                    _ => Err("Undefined behavior")
                 }
             },
-
-            TokenState::Constant => match character {
-                '0'..='9' | '.' => token.push(character),
-                'p' => {
-                    tokens.push(token);
-                    tokens.push(String::from("*"));
-
-                    token = String::from("p");
-                    token_type = TokenState::Parameter;
-                },
-
-                character if OPERATORS.contains(character) => {
-                    tokens.push(token);
-                    token = String::from(character);
-
-                    token_type = TokenState::Operator;
-                },
-
-                '(' => {
-                    tokens.push(token);
-                    tokens.push(String::from("*"));
-
-                    token = String::from("(");
-                    token_type = TokenState::Operator;
-                },
-
-                ')' => {
-                    tokens.push(token);
-                    token = String::from(")");
-                },
-
-                _ => panic!("invalid expression"),
-            },
-
-            TokenState::Parameter => match character {
-                '0'..='9' => token.push(character),
-                'p' => {
-                    tokens.push(token);
-                    tokens.push(String::from("*"));
-                    token = String::from("p");
-                },
-
-                character if OPERATORS.contains(character) => {
-                    tokens.push(token);
-                    token = String::from(character);
-
-                    token_type = TokenState::Operator;
-                },
-
-                '(' => {
-                    tokens.push(token);
-                    tokens.push(String::from("*"));
-
-                    token = String::from("(");
-                    token_type = TokenState::Operator;
-                },
-
-                ')' => {
-                    tokens.push(token);
-                    token = String::from(")");
-                },
-
-                _ => panic!("invalid expression"),
-            },
-
-            TokenState::Operator => {
-                tokens.push(token);
-                token = String::from(character);
-
-                match character {
-                    '0'..='9' => token_type = TokenState::Constant,
-                    'p' => token_type = TokenState::Parameter,
-                    '(' => token_type = TokenState::Parantheses,
-                    character if OPERATORS.contains(character) => token_type = TokenState::Operator, //buns ass logic that will allow for so many errors
-                    _ => panic!("invalid expression"),
+            Self::Number(_) => {
+                match token {
+                    Self::Parameter(_) | Self::Parantheses('(') => Ok(MUL),
+                    Operator{op: _, precidence: prec} if prec == 4 => Ok(MUL), //this is saying that if it is something like 3.0sin then expand it to 3.0 * sin(x)
+                    Operator{op: _, precidence: _} | Self::Parantheses(')') => Ok(token.clone()),
+                }
+            }
+            Self::Parameter(_) => {
+                match token {
+                    Self::Number(_) | Self::Parameter(_) | Self::Parantheses('(') => Ok(MUL),
+                    Self::Operator { op: _, precidence: _ } | Self::Parantheses(')') => Ok(token.clone()),
+                    Self::Beginning => unreachable!()
                 }
             },
-
-            TokenState::Parantheses => {
-                tokens.push(token);
-                token = String::new();
-                token.push(character);
-
-                match character {
-                    '0'..='9' => token_type = TokenState::Constant,
-                    'p' => token_type = TokenState::Parameter,
-                    character if OPERATORS.contains(character) => token_type = TokenState::Operator, //buns ass logic that will allow for so many errors
-                    _ => panic!("invalid expression"),
+            Self::Operator{op: _, precidence: 4} => {
+                match token {
+                    Self::Parantheses('(') => Ok(token.clone()),
+                    _ => Err("Invalid")
                 }
             },
+            Self::Parantheses('(') => {
+                match token {
+                    self::Operator { op: _, precidence: p } if p != 4 => Err("Invalid"),
+                    _ => Ok(token.clone())
+                }
+            }
+            Self::Parantheses(')') => {
+                match token {
+                    Self::Parameter(_) | Self::Number(_) => Ok(MUL),
+                    _ => Ok(token.clone())
+                }
+            }
         }
     }
-    tokens.push(token); // pushs last token on stack
-    tokens
 }
+
+pub fn tokenize(raw_expression: &str) -> 
 
 //shunting yard algorithm
 //autism reference
@@ -228,109 +152,9 @@ pub fn parse(mut tokens: Vec<String>) -> Vec<String> {
 
 
 //TODO: rewrite for parameterSet
-pub fn interpret(expression: &Vec<String>,parameters: &Vec<Rc<RefCell<parameter::Parameter>>>, depth: u8) -> f64 {
-    let operators= HashMap::from([
-                    ('+', Box::new(|lhs: f64, rhs: f64| vec![(lhs + rhs).to_string()]) as Box<dyn Fn(f64, f64) -> Vec<String>>),
-                    ('-', Box::new(|lhs: f64, rhs: f64| vec![(lhs - rhs).to_string()])),
-                    ('/', Box::new(|lhs: f64, rhs: f64| vec![(lhs / rhs).to_string()])),
-                    ('*', Box::new(|lhs: f64, rhs: f64| vec![(lhs * rhs).to_string()])),
-                    ('^', Box::new(|lhs: f64, rhs: f64| vec![(lhs.powf(rhs)).to_string()])),
-                    ('s', Box::new(|lhs: f64, rhs: f64| match lhs {
-                        0.0 => vec![rhs.sin().to_string()],
-                        _   => vec![lhs.to_string(), rhs.sin().to_string()],
-                    })),
-                    ('c', Box::new(|lhs: f64, rhs: f64| match lhs {
-                        0.0 => vec![rhs.cos().to_string()],
-                        _   => vec![lhs.to_string(), rhs.cos().to_string()],
-                    })),
-                    ('t', Box::new(|lhs: f64, rhs: f64| match lhs {
-                        0.0 => vec![rhs.tan().to_string()],
-                        _   => vec![lhs.to_string(), rhs.tan().to_string()],
-                    })),
-                ]);
+/// Takes in a parsed RPN expression an returns a Parameter
+pub fn interpret(expression: &Vec<String>) -> Parameter {
     
-    let mut output: Vec<String> = Vec::new();
-    
-    let mut left_hand_side: f64;
-    let mut right_hand_side: f64;
-
-    for element in expression {
-        match element.chars().next().unwrap_or('0') {
-            operator if OPERATORS.contains(operator) && element.len() == 1 => {
-                right_hand_side = output.pop().unwrap_or(String::from("0")).parse().unwrap_or(0.0);
-                left_hand_side = output.pop().unwrap_or(String::from("0")).parse().unwrap_or(0.0);
-                
-                let value = (operators.get(&operator).unwrap())(left_hand_side, right_hand_side);
-                output.extend(value);
-            },
-
-            'p' => {
-                let index: usize = element[1..].parse().unwrap_or(0);
-                if depth == 0 {
-                    parameters[index].borrow_mut().update_value(parameters);
-                }
-                output.push(parameters[index].borrow().value.to_string());
-            },
-            _ => output.push(element.clone()),
-        }
-    }
-    
-    output[0].parse().unwrap()
-}
-
-pub fn simplify(expression: &Vec<String>) -> Vec<String> {   
-    let operators= HashMap::from([
-                    ('+', Box::new(|lhs: f64, rhs: f64| vec![(lhs + rhs).to_string()]) as Box<dyn Fn(f64, f64) -> Vec<String>>),
-                    ('-', Box::new(|lhs: f64, rhs: f64| vec![(lhs - rhs).to_string()])),
-                    ('/', Box::new(|lhs: f64, rhs: f64| vec![(lhs / rhs).to_string()])),
-                    ('*', Box::new(|lhs: f64, rhs: f64| vec![(lhs * rhs).to_string()])),
-                    ('^', Box::new(|lhs: f64, rhs: f64| vec![(lhs.powf(rhs)).to_string()])),
-                    ('s', Box::new(|lhs: f64, rhs: f64| match lhs {
-                        0.0 => vec![rhs.sin().to_string()],
-                        _   => vec![lhs.to_string(), rhs.sin().to_string()],
-                    })),
-                    ('c', Box::new(|lhs: f64, rhs: f64| match lhs {
-                        0.0 => vec![rhs.cos().to_string()],
-                        _   => vec![lhs.to_string(), rhs.cos().to_string()],
-                    })),
-                    ('t', Box::new(|lhs: f64, rhs: f64| match lhs {
-                        0.0 => vec![rhs.tan().to_string()],
-                        _   => vec![lhs.to_string(), rhs.tan().to_string()],
-                    })),
-                ]);
-    let mut output: Vec<String> = Vec::new();
-
-    let mut left_hand_side_token: String;
-    let mut right_hand_side_token: String;
-
-    for element in expression {
-        
-        match element.chars().next().unwrap_or('0') {
-            operator if (OPERATORS.contains(operator) || operator == 'p') && element.len() == 1 => {
-                right_hand_side_token = output.pop().unwrap_or(String::from("0"));
-                let right_char = right_hand_side_token.chars().next().unwrap_or('0');
-                left_hand_side_token = output.pop().unwrap_or(String::from("0"));
-                let left_char = left_hand_side_token.chars().next().unwrap_or('0');
-                if OPERATORS.contains(right_char) && right_hand_side_token.len() == 1
-                 ||  OPERATORS.contains(left_char) && left_hand_side_token.len() == 1 {
-                    output.push(left_hand_side_token);
-                    output.push(right_hand_side_token);
-                    output.push(element.clone());
-                } else if right_char == 'p' || left_char == 'p' {
-                    output.push(left_hand_side_token);
-                    output.push(right_hand_side_token);
-                    output.push(element.clone());
-                } else {
-                    let left_hand_side = left_hand_side_token.parse().unwrap_or(0.0);
-                    let right_hand_side = right_hand_side_token.parse().unwrap_or(0.0);
-                    let value = (operators.get(&operator).unwrap())(left_hand_side, right_hand_side);
-                    output.extend(value);
-                }
-            },
-            _ => output.push(element.clone()),
-        }
-    }
-    output
 }
 
 #[cfg(test)]
