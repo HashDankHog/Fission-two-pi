@@ -9,8 +9,8 @@ TODO:
     - find a way to set operator as a static variable or something adjactent to a static variable
 */
 
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::LazyLock};
-use crate::{parameter::Parameter, parse::Token::Operator};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::LazyLock, thread::current};
+use crate::{parameter::Parameter, };
 
 static MNEMONICS: [(&str, &str); 4] = [ ("sin", "s"),
                                         ("cos", "c"),
@@ -27,63 +27,243 @@ static MNEMONICS: [(&str, &str); 4] = [ ("sin", "s"),
         ('c', 4),
         ('t', 4),
     ]));
+
+
+#[derive(Clone)]
+enum Parenthenses {
+    Open,
+    Close
+}
+
 #[derive(Clone)]
 enum Token {
     Beginning,
-    Number(f64),
-    Parameter(&str),
-    Operator{op: &str, precidence: u8},
-    Parantheses(char),
+    Number(&'static str),
+    Parameter(&'static str),
+    Operator{op: &'static str, precidence: i8},
+    Parantheses(Parenthenses),
 }
-impl Token {
-    const MUL: Self::Operator = Self::Operator { op: "*", precidence: 2 };
-    fn next(&self, token: &Token) -> Result<Self, &'static str> {
-        match self {
-            Self::Beginning => Ok(token.clone()),
-            Self::Number(_) => {
-                match token {
-                    Self::Operator { op: _ , precidence: _ } => Ok(token.clone()),
-                    Self::Parameter(_) | Self::Parantheses('(') => Ok(MUL),
-                    _ => Err("Undefined behavior")
+
+pub fn tokenize(raw_expression: &str) -> Option<Vec<Token>> {
+    let mut chars = raw_expression.chars();
+    let mut current_token = Token::Beginning;
+    let mut tokens: Vec<Token> = Vec::new();
+    while let Some(char) = chars.next() {
+        match current_token {
+            Token::Beginning => {
+                match char {
+                    n @ '0'..='9' => current_token = Token::Number(&n.to_string()),
+                    'p' => current_token = Token::Parameter("p"),
+                    '(' => current_token = Token::Parantheses(Parenthenses::Open),
+                    op @ 'a'..='z' => current_token = Token::Operator { op: &op.to_string(), precidence: 4 },
+                    _ => return None
                 }
             },
-            Self::Number(_) => {
-                match token {
-                    Self::Parameter(_) | Self::Parantheses('(') => Ok(MUL),
-                    Operator{op: _, precidence: prec} if prec == 4 => Ok(MUL), //this is saying that if it is something like 3.0sin then expand it to 3.0 * sin(x)
-                    Operator{op: _, precidence: _} | Self::Parantheses(')') => Ok(token.clone()),
-                }
-            }
-            Self::Parameter(_) => {
-                match token {
-                    Self::Number(_) | Self::Parameter(_) | Self::Parantheses('(') => Ok(MUL),
-                    Self::Operator { op: _, precidence: _ } | Self::Parantheses(')') => Ok(token.clone()),
-                    Self::Beginning => unreachable!()
+            Token::Number(num) => {
+                match char {
+                    n @ ('0'..='9' | '.') => { //TODO: clean ts john on up
+                        let mut a = num.to_string();
+                        a.push(n); 
+                        current_token = Token::Number(&a);
+                    },
+                    'p' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Parameter(&"p");
+                    },
+                    op @ ('+' | '-') => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator {op: &op.to_string(), precidence: 1};
+                    },
+                    op @ ('*' | '/' ) => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator { op: &op.to_string(), precidence: 2 };
+                    },
+                     '^'  => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator { op: "^", precidence: -3 };
+                    },
+                    '(' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Parantheses(Parenthenses::Open);
+                    }
+                    ')'  => {
+                        tokens.push(current_token);
+                        current_token = Token::Parantheses(Parenthenses::Close);
+                    },
+                    op @ 'a'..='z' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Operator { op: &op.to_string(), precidence: 4 }
+                    },
+                    _ => return None
                 }
             },
-            Self::Operator{op: _, precidence: 4} => {
-                match token {
-                    Self::Parantheses('(') => Ok(token.clone()),
-                    _ => Err("Invalid")
+            Token::Parameter(param) => {
+                match char {
+                    n @ '0'..='9' => {
+                        let mut a = param.to_string();
+                        a.push(n); 
+                        current_token = Token::Parameter(&a);
+                    },
+                    'p' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Parameter("p");
+                    },
+                    op @ ('+' | '-') => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator {op: &op.to_string(), precidence: 1};
+                    },
+                    op @ ('*' | '/' ) => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator { op: &op.to_string(), precidence: 2 };
+                    },
+                    '^'  => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator { op: "^", precidence: -3 };
+                    },
+                    '(' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Parantheses(Parenthenses::Open);
+                    }
+                    ')'  => {
+                        tokens.push(current_token);
+                        current_token = Token::Parantheses(Parenthenses::Close);
+                    },
+                    op @ 'a'..='z' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Operator { op: &op.to_string(), precidence: 4 }
+                    },
+                    _ => return None
                 }
             },
-            Self::Parantheses('(') => {
-                match token {
-                    self::Operator { op: _, precidence: p } if p != 4 => Err("Invalid"),
-                    _ => Ok(token.clone())
+            Token::Operator { op: op, precidence: prec } => {
+                match char {
+                    c @ 'a'..='z' if prec == 4 => {
+                        let mut a = op.to_string();
+                        a.push(c);
+                        current_token = Token::Operator { op: &a, precidence: 4 };
+                    },
+                    c @ 'a'..='z' if prec != 4 => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator { op: &c.to_string(), precidence: 4};
+                    },
+                    num @ '0'..='9' if prec != 4 => {
+                        tokens.push(current_token);
+                        current_token = Token::Number(&num.to_string());
+                    },
+                    num @ '0'..='9' if prec == 4 => {
+                        match op {
+                            "pi" => {
+                                tokens.push(Token::Number("3.14159265358979"));
+                                tokens.push(Token::Operator{op: "*", precidence: 2});
+                                current_token = Token::Number(&num.to_string());
+                            },
+                            "e" => {
+                                tokens.push(Token::Number("2.71"));
+                                tokens.push(Token::Operator{op: "*", precidence: 2});
+                                current_token = Token::Number(&num.to_string());
+                            },
+                            _ => return None
+                        }
+                    },
+                    'p' if prec != 4 => {
+                        tokens.push(current_token);
+                        current_token = Token::Parameter("p");
+                    },
+                    '(' if prec != 4 => {
+                        tokens.push(current_token);
+                        current_token = Token::Parantheses(Parenthenses::Open);
+                    },
+                    '(' if prec == 4 => {
+                        match op {
+                            "sin" | "cos" | "tan" | "arcsin" | "arccos" | "arctan" | "log" | "ln"  => {
+                                tokens.push(current_token);
+                                current_token = Token::Parantheses(Parenthenses::Open);
+                            },
+                            "pi" => {
+                                tokens.push(Token::Number("3.13159265358979"));
+                                tokens.push(Token::Operator{op: "*", precidence: 2});
+                                current_token = Token::Parantheses(Parenthenses::Open);
+                            },
+                            "e" => {
+                                tokens.push(Token::Number("2.71"));
+                                tokens.push(Token::Operator{op: "*", precidence: 2});
+                                current_token = Token::Parantheses(Parenthenses::Open);
+                            },
+                            _ => return None
+                        }
+                    },
+                    _ => return None
                 }
-            }
-            Self::Parantheses(')') => {
-                match token {
-                    Self::Parameter(_) | Self::Number(_) => Ok(MUL),
-                    _ => Ok(token.clone())
+            },
+            Token::Parantheses(Parenthenses::Open) => {
+                match char {
+                    num @ '0'..='9' => {
+                        tokens.push(current_token);
+                        current_token = Token::Number(&num.to_string());
+                    },
+                    'p' => {
+                        tokens.push(current_token);
+                        current_token = Token::Parameter("p");
+                    }
+                    c @ 'a'..='z' => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator{op: &c.to_string(), precidence: 4};
+                    },
+                    '(' => tokens.push(current_token),
+                    ')' => {
+                        tokens.push(current_token);
+                        current_token = Token::Parantheses(Parenthenses::Close);
+                    },
+                    _ => return None
                 }
+            },
+            Token::Parantheses(Parenthenses::Close) => {
+                match char {
+                    num@ '0'..='9' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Number(&num.to_string());
+                    },
+                    'p' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Parameter("p");
+                    },
+                    '(' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Parantheses(Parenthenses::Open);
+                    },
+                    op @ ('+' | '-') => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator {op: &op.to_string(), precidence: 1};
+                    },
+                    op @ ('*' | '/' ) => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator { op: &op.to_string(), precidence: 2 };
+                    },
+                     '^'  => {
+                        tokens.push(current_token);
+                        current_token = Token::Operator { op: "^", precidence: -3 };
+                    },
+                    c @ 'a'..='z' => {
+                        tokens.push(current_token);
+                        tokens.push(Token::Operator { op: "*", precidence: 2 });
+                        current_token = Token::Operator{op: &c.to_string(), precidence: 4};
+                    },
+                    _ => return None
             }
         }
     }
+    }
+    Some(tokens)
 }
-
-pub fn tokenize(raw_expression: &str) -> 
 
 //shunting yard algorithm
 //autism reference
