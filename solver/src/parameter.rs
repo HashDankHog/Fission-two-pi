@@ -1,4 +1,3 @@
-use crate::parse::{interpret, simplify};
 use dyn_clone::DynClone; //TODO: create my own hand rolled version once I understand why it works
 use std::ops::{Add, Sub, Mul, Div, Neg};
 
@@ -16,12 +15,12 @@ use std::ops::{Add, Sub, Mul, Div, Neg};
 dyn_clone::clone_trait_object!(Expression);
 //from here to line 27 was written by claude
 //TODO: replace with my own implementation, if possible
-pub trait Expression: Fn(Vec<f64>) -> f64 + DynClone {}
+pub trait Expression: Fn(&Vec<f64>) -> f64 + DynClone {}
 
 
 impl<T> Expression for T
 where
-    T: 'static + Fn(Vec<f64>) -> f64 + Clone,
+    T: 'static + Fn(&Vec<f64>) -> f64 + Clone,
 {}
 // TODO: rewrite this doc segment to take advantage of code hiding
 /// Arguably the core of the entirity of Parametrox
@@ -38,11 +37,17 @@ where
 /// let x0 = Parameter(Box::new(|p| p[0] + 1.0));
 /// 
 /// // lets define another output parameter
-/// let x1 = Parameter(Box::new(|p| p[[1] + 1.0));
+/// let x1 = Parameter(Box::new(|p| p[1] + 1.0));
 /// 
-/// assert_eq!(x0(p), 1.0);
-/// assert_eq!(x1(p),2.0);
-/// assert_eq!((x0/x1)(p), 0.5);
+/// assert_eq!(x0.0(&p), 1.0);
+/// assert_eq!(x1.0(&p),2.0);
+/// 
+/// //we can also change p
+/// p[0] = 1.0;
+/// assert_eq!(x0.0(&p), 2.0);
+/// p[0] = 0.0;
+/// 
+/// assert_eq!((x0/x1).0(&p), 0.5);
 /// ```
 pub struct Parameter(Box<dyn Expression>);
 
@@ -71,35 +76,35 @@ impl Default for Parameter {
 impl Add for Parameter {
     type Output = Self;
     fn add(self, rhs: Self) -> Self { 
-        Parameter(Box::new(move |p| self.0(p.clone()) + rhs.0(p)))
+        Parameter(Box::new(move |p| self.0(p) + rhs.0(p)))
     }
 }
 
 impl Sub for Parameter {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self { 
-        Parameter(Box::new(move |p| self.0(p.clone()) - rhs.0(p)))
+        Parameter(Box::new(move |p| self.0(p) - rhs.0(p)))
     }
 }
 
 impl Mul for Parameter {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        Parameter(Box::new(move |p| self.0(p.clone()) * rhs.0(p)))
+        Parameter(Box::new(move |p| self.0(p) * rhs.0(p)))
     }
 }
 
 impl Div for Parameter {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
-        Parameter(Box::new(move |p| self.0(p.clone()) / rhs.0(p)))
+        Parameter(Box::new(move |p| self.0(p) / rhs.0(p)))
     }
 }
 
 impl Neg for Parameter {
     type Output = Self;
     fn neg(self) -> Self::Output {
-        Parameter(Box::new(move |p| self.0(p.clone()) * -1.0))
+        Parameter(Box::new(move |p| self.0(p) * -1.0))
     }
 }
 
