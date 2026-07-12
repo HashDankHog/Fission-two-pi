@@ -1,6 +1,3 @@
-use crate::{parameter::Parameter, parse::Token::Operator};
-
-
 /// Denotes the possible components of any expression a user might input
 /// - Beginning: marks the beginning of a expression
 /// - Number: any constant value, IE: 12, 17.45, etc
@@ -10,7 +7,7 @@ use crate::{parameter::Parameter, parse::Token::Operator};
 /// - OpenParenthenses: the ( symbol
 /// - CloseParentenses: the ) symbol
 /// - Unknown: will never show up in a parsed expresion, is used as an intermediate when figuring out the validity of certain strings
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Token<T> {
     Beginning,
     Number(T),
@@ -71,6 +68,12 @@ impl Token<String> {
 /// - compress those tokens according to a set of rules
 /// # Time Complexity
 /// I am like 50% sure this is O(n) but I know that it is at most O(n^2)
+/// # Examples
+/// ```
+/// use solver::parse::{tokenize, Token};
+/// let a = "0.0+1";
+/// assert_eq!(tokenize(&a), vec![Token::Number(0.0), Token::Operator('+'), Token::Number(1.0)].into())
+/// ```
 pub fn tokenize(expression_raw: &str) -> Option<Vec<Token<f64>>> {
     let mut tokens_raw = Vec::new();
     let mut chars = expression_raw.chars();
@@ -92,12 +95,12 @@ pub fn tokenize(expression_raw: &str) -> Option<Vec<Token<f64>>> {
 
     //TODO: with a little bit of ingenuity, I should be able to get rid of temp all together
     let mut temp = String::new();
-    while tokens_raw.len() != 0 {
-        match tokens_raw.pop() {
+    while let Some(token) = tokens_raw.pop() {
+        match token {
             //the ideal behavior would be something like Some(tok @ (Token::Number(c) | Token::Unknown(c))) because then I could cut the
             //number of match statements to two
             // actually I could probably achieve this using if statements but I will come back and do that
-            Some(Token::Number(c)) => {
+            Token::Number(c) => {
                 match current_token {
                     Token::Beginning | Token::Number(_) => {},
                     _ => {
@@ -108,14 +111,14 @@ pub fn tokenize(expression_raw: &str) -> Option<Vec<Token<f64>>> {
                 temp.push(c);
                 current_token = Token::Number(temp.clone());
             },
-            Some(Token::Operator(c)) => {
+            Token::Operator(c) => {
                 match current_token {
                     Token::Beginning => {},
                     _ => tokens_combined.push(current_token)
                 }
                 current_token = Token::Operator(c);
             },
-            Some(Token::Unknown(c)) => {
+            Token::Unknown(c) => {
                 match current_token {
                     Token::Beginning | Token::Unknown(_) => {},
                     _ => {
@@ -126,25 +129,27 @@ pub fn tokenize(expression_raw: &str) -> Option<Vec<Token<f64>>> {
                 temp.push(c);
                 current_token = Token::Unknown(temp.clone());
             },
-            Some(Token::OpenParenthenses) => {
+            Token::OpenParenthenses => {
                 tokens_combined.push(current_token);
                 current_token = Token::OpenParenthenses;
             },
-            Some(Token::CloseParenthenses) => {
+            Token::CloseParenthenses => {
                 tokens_combined.push(current_token);
                 current_token = Token::CloseParenthenses;
             },
-            Some(_) => unreachable!(),
-            None => break
+            _ => unreachable!(),
         }
     }
-    
+    tokens_combined.push(current_token);
+
     let mut tokens_string = Vec::new();
     tokens_combined.reverse();
     while let Some(token_1) = tokens_combined.pop() {
         match tokens_combined.pop() {
-            Some(token_2) => {   
-                tokens_string.push(token_1.clone());   
+            Some(token_2) => {
+                if token_1 != Token::Unknown(String::from("p")) { // TODO: clean up this if statement by removing it
+                    tokens_string.push(token_1.clone());   
+                }
                 match token_1.next(token_2.clone()) {
                     Some(Token::Operator('*')) => {
                         tokens_combined.push(token_2);
@@ -155,12 +160,11 @@ pub fn tokenize(expression_raw: &str) -> Option<Vec<Token<f64>>> {
                     },
                     None => return None
                 }
-
             },
-            None => break
+            None => tokens_string.push(token_1)
         }
     }
-
+    
     let mut tokens = Vec::new();
     tokens_string.reverse();
     while let Some(token) = tokens_string.pop() {
