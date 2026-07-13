@@ -1,3 +1,6 @@
+use crate::parameter::Parameter;
+
+
 /// Denotes the possible components of any expression a user might input
 /// - Beginning: marks the beginning of a expression
 /// - Number: any constant value, IE: 12, 17.45, etc
@@ -175,9 +178,93 @@ pub fn tokenize(expression_raw: &str) -> Option<Vec<Token<f64>>> {
             Token::Parameter(n) => tokens.push(Token::Parameter(n)),
             Token::Operator(op) => tokens.push(Token::Operator(op)),
             Token::Function(func) => tokens.push(Token::Function(func)),
-            _ => return None
-            
+            _ => return None    
         }
     }
     Some(tokens)
+}
+
+fn precidence(operator: &Token<f64>) -> i8 {
+    match operator {
+        Token::Operator('+') | Token::Operator('-') => 1,
+        Token::Operator('*') | Token::Operator('/') => 2,
+        Token::Operator('^') => -3,
+        _ => unreachable!()
+    }
+}
+
+/// Takes in a list of tokens and outputs a Reverse Polish Notation expression
+/// # Examples
+/// ```
+/// use solver::parse::{parse, Token};
+/// //1+2*3
+/// let expression = vec![Token::Number(1.0), Token::Operator('+'), Token::Number(2.0), Token::Operator('*'), Token::Number(3.0)];
+/// let expected = vec![Token::Number(1.0), Token::Number(2.0), Token::Number(3.0), Token::Operator('*'), Token::Operator('+')];
+/// assert_eq!(parse(&expression), Some(expected));
+/// ```
+pub fn parse(expression: &Vec<Token<f64>>) -> Option<Vec<Token<f64>>> {
+    let mut tokens = expression.clone();
+    let mut output = Vec::new();
+    let mut operator_stack = Vec::new();
+    tokens.reverse();
+    while let Some(token) = tokens.pop() {
+        println!("h: {:?}", operator_stack);
+        match token {
+            Token::Number(_) | Token::Parameter(_) => output.push(token),
+            Token::Function(_) | Token::OpenParenthenses => operator_stack.push(token),
+            Token::Operator(_) => {
+                while let Some(op_2) = operator_stack.pop() {
+                    match op_2 {
+                        Token::OpenParenthenses => {
+                            operator_stack.push(op_2); 
+                            break
+                        },
+                        Token::Operator(_) => {
+                            if precidence(&op_2).abs() > precidence(&token).abs() {
+                                output.push(op_2);
+                            }
+                            else if precidence(&op_2) == precidence(&token) && precidence(&op_2) > 0 {
+                                output.push(op_2);
+                            }
+                            else {
+                                operator_stack.push(op_2);
+                                break
+                            }
+                        },
+                        _ => unreachable!()
+                    }
+                }
+                operator_stack.push(token);
+            },
+            Token::CloseParenthenses => {
+                let mut found = false;
+                while let Some(op_2) = operator_stack.pop() {
+                    match op_2 {
+                        Token::OpenParenthenses => {
+                            found = true;
+                            break},
+                        Token::Operator(_) => output.push(op_2),
+                        _ => unreachable!()
+                    }
+                }
+                if !found {
+                    return None
+                }
+            },
+            _ => unreachable!()
+        }
+    }
+
+    while let Some(token) = operator_stack.pop() {
+        match token {
+            Token::OpenParenthenses => return None,
+            Token::Operator(_) | Token::Function(_) => output.push(token),
+            _ => unreachable!() 
+        }
+    }
+    Some(output)
+}    
+
+pub fn interpret(parsed_expression: Vec<Token<f64>>) -> Parameter{
+    unimplemented!()
 }
