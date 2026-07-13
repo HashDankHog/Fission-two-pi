@@ -1,16 +1,21 @@
+use std::sync::{LazyLock, Mutex};
 use dyn_clone::DynClone; //TODO: create my own hand rolled version once I understand why it works
 use std::ops::{Add, Sub, Mul, Div, Neg};
 
+static VALUES: LazyLock<Mutex<Vec<f64>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
-/*TODO: traits
-<T: From<bool> + 
- + AddAssign + 
- + SubAssign +
- + MulAssign +
- + DivAssign + Neg<Output = T> + Value + PartialOrd>
-*/
-
-//TODO: add parameterSet
+#[derive(Clone)]
+pub struct Parameters(Vec<Parameter>);
+impl Parameters {
+    pub fn update(&self) {
+        let mut old_values = VALUES.lock().unwrap();
+        let mut new_values = vec![0.0; old_values.len()];
+        for index in 0..self.0.len() {
+            new_values[index] = self.0[index].0(&old_values);
+        }
+        *old_values = new_values.clone();
+    }
+}
 
 dyn_clone::clone_trait_object!(Expression);
 //from here to line 27 was written by claude
@@ -49,6 +54,7 @@ where
 /// 
 /// assert_eq!((x0/x1).0(&p), 0.5);
 /// ```
+#[derive(Clone)]
 pub struct Parameter(Box<dyn Expression>);
 
 impl From<bool> for Parameter {
@@ -59,11 +65,10 @@ impl From<bool> for Parameter {
         }
     }
 }
-//this is going to be hard to implement
-//since it might force me to add a value item to the parameter struct and I dont want to do that
+
 impl Into<f64> for Parameter{
     fn into(self) -> f64 {
-        self.value
+        self.0(&*VALUES.lock().unwrap())
     }
 }
 
@@ -108,58 +113,38 @@ impl Neg for Parameter {
     }
 }
 
+impl PartialEq for Parameter {
+    fn eq(&self, other: &Self) -> bool {
+        let val = VALUES.lock().unwrap();
+        self.0(&val) == other.0(&val)
+    }
+    fn ne(&self, other: &Self) -> bool {
+        let val = VALUES.lock().unwrap();
+        self.0(&val) != other.0(&val)
+    }
+}
+
 impl PartialOrd for Parameter {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.value.partial_cmp(&other.value)
+        let val = VALUES.lock().unwrap();
+        self.0(&val).partial_cmp(&other.0(&val))
     }
     fn lt(&self, other: &Self) -> bool {
-        if self.value < other.value { return true; }
+        let val = VALUES.lock().unwrap();
+        if self.0(&val) < other.0(&val) { return true; }
         false
     }
     fn le(&self, other: &Self) -> bool {
-        if self.value <= other.value { return true; }
-        false
+        let val = VALUES.lock().unwrap();
+        self.0(&val) <= other.0(&val)
     }
     fn gt(&self, other: &Self) -> bool {
-        if self.value > other.value { return true; }
-        false
+        let val = VALUES.lock().unwrap();
+        self.0(&val) > other.0(&val)
     }
     fn ge(&self, other: &Self) -> bool {
-        if self.value >= other.value { return true; }
-        false
+        let val = VALUES.lock().unwrap();
+        self.0(&val) >= other.0(&val)
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parameter_add_test() {
-        let parameter_1 = Parameter{expression: vec![String::from("1")], value: 1.0 };
-        let parameter_2 = Parameter{expression: vec![String::from("2")], value: 2.0 };
-        assert_eq!(parameter_1 + parameter_2, Parameter{expression: vec![String::from("1"), String::from("2"), String::from("+")], value: 3.0 })
-    }
-
-    #[test]
-    fn parameter_sub_test() {
-        let parameter_1 = Parameter{expression: vec![String::from("1")], value: 1.0 };
-        let parameter_2 = Parameter{expression: vec![String::from("2")], value: 2.0 };
-        assert_eq!(parameter_1 - parameter_2, Parameter{expression: vec![String::from("1"), String::from("2"), String::from("-")], value: -1.0 })
-    }
-
-    #[test]
-    fn parameter_mul_test() {
-        let parameter_1 = Parameter{expression: vec![String::from("1")], value: 1.0 };
-        let parameter_2 = Parameter{expression: vec![String::from("2")], value: 2.0 };
-        assert_eq!(parameter_1 * parameter_2, Parameter{expression: vec![String::from("1"), String::from("2"), String::from("*")], value: 2.0 })
-    }
-
-    #[test]
-    fn parameter_div_test() {
-        let parameter_1 = Parameter{expression: vec![String::from("1")], value: 1.0 };
-        let parameter_2 = Parameter{expression: vec![String::from("2")], value: 2.0 };
-        assert_eq!(parameter_1 / parameter_2, Parameter{expression: vec![String::from("1"), String::from("2"), String::from("/")], value: 0.5 })
-    }
-
-}
