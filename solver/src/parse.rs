@@ -1,5 +1,5 @@
 use crate::parameter::Parameter;
-
+use crate::function::*;
 
 /// Denotes the possible components of any expression a user might input
 /// - Beginning: marks the beginning of a expression
@@ -265,6 +265,59 @@ pub fn parse(expression: &Vec<Token<f64>>) -> Option<Vec<Token<f64>>> {
     Some(output)
 }    
 
-pub fn interpret(parsed_expression: Vec<Token<f64>>) -> Parameter{
-    unimplemented!()
+/// Takes in a parsed expression and returns a parameter that can actually be used to make computations.
+/// # Examples
+/// ```
+/// use solver::parse::{Token, interpret};
+/// // p0 + 1
+/// let expression = vec![Token::Parameter(0), Token::Number(1.0), Token::Operator('+')];
+/// let params = vec![0.0, 1.0];
+/// 
+/// assert_eq!(interpret(&expression).unwrap().0(&params), 1.0);
+/// ```
+
+pub fn interpret(parsed_expression: &Vec<Token<f64>>) -> Option<Parameter> {
+    let mut tokens = parsed_expression.clone();
+    tokens.reverse();
+    let mut output_queue = Vec::new();
+    while let Some(token) = tokens.pop() {
+        match token {
+            Token::Number(num) => output_queue.push(Parameter(Box::new(move |_p| num))),
+            Token::Parameter(index) => output_queue.push(Parameter(Box::new(move |p| p[index]))),
+            Token::Operator(op) => {
+                let param_1: Parameter;
+                let param_2: Parameter;
+
+                if let Some(param) = output_queue.pop() { param_2 = param; } else { return None; }
+                if let Some(param) = output_queue.pop() { param_1 = param; } else { return None; }
+                
+                match op {
+                    '+' => output_queue.push(param_1 + param_2),
+                    '-' => output_queue.push(param_1 - param_2),
+                    '/' => output_queue.push(param_1 / param_2),
+                    '*' => output_queue.push(param_1 * param_2),
+                    '^' => output_queue.push(param_1.pow(param_2)),
+                    _ => return None
+                }
+            },
+            Token::Function(func) => {
+                let param_1: Parameter;
+
+                if let Some(param) = output_queue.pop() {param_1 = param; } else { return None; }
+
+                match &func[..] {
+                    "sin" => output_queue.push(param_1.sin()),
+                    "arcsin" => output_queue.push(param_1.arc_sin()),
+                    "cos" => output_queue.push(param_1.cos()),
+                    "arccos" => output_queue.push(param_1.arc_cos()),
+                    "tan" => output_queue.push(param_1.tan()),
+                    "arctan" => output_queue.push(param_1.arc_tan()),
+                    _ => return None
+                }
+            },
+            _ => return None
+        }
+    }
+    
+    Some(output_queue[0].clone())
 }
