@@ -1,11 +1,11 @@
 use std::sync::{LazyLock, Mutex};
 use dyn_clone::DynClone; //TODO: create my own hand rolled version once I understand why it works
 use std::ops::{Add, Sub, Mul, Div, Neg};
-
+use crate::function::{Sin, ArcSin, Cos, ArcCos, Tan, ArcTan, Pow};
 static VALUES: LazyLock<Mutex<Vec<f64>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
 #[derive(Clone)]
-pub struct Parameters(Vec<Parameter>);
+pub struct Parameters(pub Vec<Parameter>);
 impl Parameters {
     pub fn update(&self) {
         let mut old_values = VALUES.lock().unwrap();
@@ -55,7 +55,7 @@ where
 /// assert_eq!((x0/x1).0(&p), 0.5);
 /// ```
 #[derive(Clone)]
-pub struct Parameter(Box<dyn Expression>);
+pub struct Parameter(pub Box<dyn Expression>);
 
 impl From<bool> for Parameter {
     fn from(value: bool) -> Self {
@@ -113,6 +113,47 @@ impl Neg for Parameter {
     }
 }
 
+impl Sin for Parameter {
+    fn sin(self) -> Self {
+        Parameter(Box::new(move |p| self.0(p).sin()))
+    }
+}
+
+impl Cos for Parameter {
+    fn cos(self) -> Self {
+        Parameter(Box::new(move |p| self.0(p).cos()))
+    }
+}
+
+impl Tan for Parameter {
+    fn tan(self) -> Self {
+        Parameter(Box::new(move |p| self.0(p).tan()))
+    }
+}
+
+impl ArcSin for Parameter {
+    fn arc_sin(self) -> Self {
+        Parameter(Box::new(move |p| self.0(p).asin()))
+    }
+}
+
+impl ArcCos for Parameter {
+    fn arc_cos(self) -> Self {
+        Parameter(Box::new(move |p| self.0(p).acos()))
+    }
+}
+
+impl ArcTan for Parameter {
+    fn arc_tan(self) -> Self {
+        Parameter(Box::new(move |p| self.0(p).atan()))
+    }
+}
+
+impl Pow for Parameter {
+    fn pow(self, other: Self) -> Self {
+        Parameter(Box::new(move |p| self.0(p).powf(other.0(p))))
+    }
+}
 impl PartialEq for Parameter {
     fn eq(&self, other: &Self) -> bool {
         let val = VALUES.lock().unwrap();

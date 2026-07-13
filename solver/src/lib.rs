@@ -1,6 +1,7 @@
 pub mod matrix;
 pub mod parameter;
 pub mod parse;
+pub mod function;
 pub mod geometry;
 pub mod vec;
 //TODO: remove and replace with From
