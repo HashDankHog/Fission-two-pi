@@ -1,7 +1,12 @@
 use std::sync::{LazyLock, Mutex};
 use dyn_clone::DynClone; //TODO: create my own hand rolled version once I understand why it works
 use std::ops::{Add, Sub, Mul, Div, Neg};
-use crate::function::{Sin, ArcSin, Cos, ArcCos, Tan, ArcTan, Pow};
+
+use crate::function::*;
+
+static STEP: f64 = 0.00005;
+
+
 static VALUES: LazyLock<Mutex<Vec<f64>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
 #[derive(Clone)]
@@ -154,6 +159,37 @@ impl Pow for Parameter {
         Parameter(Box::new(move |p| self.0(p).powf(other.0(p))))
     }
 }
+
+use crate::vec::add;
+impl Diff for Parameter {
+    /// Returns a Parameter that approximates the partial deriviatiave at any point
+    /// While differentiation is closed, the anonomyous nature of closures makes it, at least to my knowledge, impossible to symbollically/automatically compute
+    /// derivitaves.
+    /// # Examples
+    /// ```
+    /// use solver::parameter::Parameter;
+    /// use solver::function::Diff;
+    /// // here we define our set of inputs
+    /// let mut p = vec![1.0];
+    /// 
+    /// // p0 + 1
+    /// let x0 = Parameter(Box::new(|p| p[0] + 1.0));
+    /// 
+    /// // dx0/dp0
+    /// let x1 = x0.diff(0);
+    /// 
+    /// //since we cant have exact computation, we instead check for the error of the derivitave
+    /// assert!(x1.0(&p)-1.0 < 0.00001);
+    /// ```
+    fn diff(self, of: usize) -> Parameter {
+        //I HATE ITERATORS
+        Parameter(Box::new(move |p| (
+            self.0(&add(p,&(p.into_iter().enumerate().map(|(index, _val )| if index == of { STEP } else { 0.0 }).collect())).unwrap()) - self.0(p)) / STEP))
+    }
+}
+
+
+
 impl PartialEq for Parameter {
     fn eq(&self, other: &Self) -> bool {
         let val = VALUES.lock().unwrap();

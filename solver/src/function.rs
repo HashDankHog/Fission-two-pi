@@ -27,3 +27,7 @@ pub trait Sqrt {
 pub trait Pow {
     fn pow(self, other: Self) -> Self; 
 }
+
+pub trait Diff {
+    fn diff(self, of: usize) -> Self;
+}
