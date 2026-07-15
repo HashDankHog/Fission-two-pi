@@ -1,7 +1,7 @@
 //! # Vec
 //! Adds just a couple of simple vector operations for numeric vectors
 
-use std::ops::{Add, Sub, Mul};
+use std::ops::{Add, AddAssign, Sub, Mul};
 
 /// Calculates the dot product of two numeric vectors
 /// # Examples
@@ -13,6 +13,7 @@ use std::ops::{Add, Sub, Mul};
 /// # Errors
 /// If one of the vecs is a different length than the other, the function will return None
 pub fn dot_prod<T: Mul<Output = T> + Add<Output = T> + Clone>(vec_1: &Vec<T>, vec_2: &Vec<T>) -> Option<T> {
+    //TODO: wtf is this match statement here for
     match vec_2.len() {
         l if l == vec_1.len() => Some({
             //TODO: replace with an iterator
@@ -86,3 +87,12 @@ pub fn arg_min<T: std::cmp::PartialOrd + Clone>(vec: &[T]) -> usize {
     }
     min.1
 }
+
+pub fn add<T: AddAssign + Clone>(vec_1: &Vec<T>, vec_2: &Vec<T>) -> Option<Vec<T>> {
+    if vec_1.len() != vec_2.len() { return None; }
+    let mut result = vec_1.clone();
+    for element in 0..vec_1.len() {
+        result[element] += vec_2[element].clone();
+    }
+    Some(result)
+} 
