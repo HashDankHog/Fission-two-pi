@@ -1,14 +1,11 @@
 //! # Matrix
 //! Module for matrix and vector operations. 
 
-
-
-/* TODO
-    - impl simplify for Matrix<Parameter>
-*/
+use crate::parameter::{Parameter, Parameters};
 use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::vec::{arg_max, dot_prod};
 use crate::Value;
+
 pub enum EchelonForm {
     None,
     Row,
@@ -452,4 +449,12 @@ Neg<Output = Self> + Clone + Value + PartialOrd> IdentityMatrix for T {
     }
 }
 
-pub struct Jacobian;
+pub struct Jacobian(pub Matrix<Parameter>);
+
+use crate::function::Diff;
+impl From<(Parameters, &Vec<f64>)> for Jacobian{ 
+    fn from(value: (Parameters, &Vec<f64>)) -> Self {
+        let jacobian = Matrix { elements : vec![ Parameter::default(); value.1.len()*value.0.0.len()], rows: value.1.len(), colums: value.0.0.len() };
+        Jacobian(jacobian.iterate(|row, colum| value.0.0[row].clone().diff(colum)))
+    }
+}
