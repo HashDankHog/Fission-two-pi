@@ -16,9 +16,10 @@ pub enum EchelonForm {
 /// # Examples
 /// ```
 /// //this example does not work currently bc I am extremely lazy and cant be fucked to implement a extremely simple function
-/// let mut A = Matrix {elements: vec![1,1,1,-1], rows: 2, colums: 2 };
-/// let B = Matrix { elements: vec![2, 0], rows: 2, colums: 1};
-/// assert_eq!(A.solve_for(B), Matrix {vec![1,1], rows:2, colums: 1});
+/// use solver::matrix::Matrix;
+/// let mut A = Matrix {elements: vec![1.0,1.0,1.0,-1.0], rows: 2, colums: 2 };
+/// let B = vec![2.0, 0.0];
+/// assert_eq!(A.solve_for(&B), Some(Matrix { elements: vec![1.0,1.0], rows:2, colums: 1}));
 /// ```
 #[derive(PartialEq, Debug, Clone)]
 pub struct Matrix<T: From<bool> + 
@@ -52,7 +53,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
             return Ok(true);
         }
     }
-
+    
     /// Returns the element for any row and colum in the matrix
     /// # Examples
     /// ```
@@ -115,7 +116,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// Returns any colum of a matrix as a vector
     /// # Examples
     /// ```
-    /// use solver::matirx::Matrix;
+    /// use solver::matrix::Matrix;
     /// let A = Matrix { elements: vec![1.0,2.0,3.0,4.0], rows: 2, colums: 2};
     /// assert_eq!(A.colum(1), vec![2.0,4.0]);
     /// ```
@@ -127,8 +128,15 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         }
         r
     }
+    //TODO: return result
+    pub fn append_colum(&mut self, colum: &Vec<T>) {
+        if colum.len() != self.rows { panic!("ouu shi"); }
+        for row in 0..self.rows {
+            self.elements.insert((self.colums+1)*(row) + (self.colums), colum[row].clone());
+        }
+        self.colums += 1;
+    }
 
-    
     /// Mutably swaps any two rows of a matrix
     /// # Examples
     /// ```
@@ -169,7 +177,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// use solver::matrix::Matrix;
     /// let mut A = Matrix { elements: vec![3,2,1], rows: 3, colums: 1};
     /// A.add_row(0,2,3);
-    /// assert_eq!(A.elments, vec![9,2,1]);
+    /// assert_eq!(A.elements, vec![6,2,1]);
     /// ```
     pub fn add_row(&mut self, row_1: usize, row_2: usize, scale: T) {
         for colum in 0..self.colums {
@@ -358,6 +366,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// let a = Matrix {elements: vec![2.0,1.0,1.0,3.0], rows: 2, colums: 2};
     /// assert_eq!(a.inverse().unwrap().elements, vec![0.6, -0.2, -0.2, 0.4]);
     /// ```
+    // I am like 99% sure this will return the inverse of non invertible matrices but Idgaf rn
     pub fn inverse(&self) -> Option<Matrix<T>> {
         if self.rows != self.colums { return None }
         let mut temp = self.clone();
@@ -410,8 +419,22 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
 
     /// not implemented yet due to general lazieness
     pub fn determinant(&self) -> T {self.element(0,0).clone()}
-    /// not implemented yet due to general lazieness
-    pub fn adjoint(&self) -> Matrix<T> {self.clone()}
+    
+    
+    pub fn solve_for(&self, value: &Vec<T>) -> Option<Matrix<T>> {
+        let mut solution = self.clone();
+        solution.append_colum(value);
+        solution.to_red_row_form();
+        //this logic works because of a few guarentees one can make based off of how gaussian elimination works
+        for row in 0..solution.rows {
+            match solution.find_pivot(row){
+                Some(x) if x == solution.colums - 1 => { return None },
+                None => return Some(solution),
+                _ => {}
+            }
+        }
+        Some(Matrix{ elements: solution.colum(solution.colums-1), rows: solution.rows, colums: 1})
+    }
     
 }
 
@@ -448,9 +471,12 @@ Neg<Output = Self> + Clone + Value + PartialOrd> IdentityMatrix for T {
         identity
     }
 }
-
 pub struct Jacobian(pub Matrix<Parameter>);
-
+impl Jacobian {
+    pub fn solve(&mut self, guess: &Vec<f64>) -> Vec<f64> {
+        unimplemented!()
+    }
+}
 use crate::function::Diff;
 impl From<(Parameters, &Vec<f64>)> for Jacobian{ 
     fn from(value: (Parameters, &Vec<f64>)) -> Self {
