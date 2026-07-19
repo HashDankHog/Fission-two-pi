@@ -36,42 +36,12 @@ fn add_segment(position: usize) {
 
 #[tauri::command]
 fn plot(segment: usize, expressions: Vec<String>, color: [u8;3]){
-    let mut profile = Profile::default();
-    for expression in expressions {
-        let tokens= tokenize(&expression);
-
-        let parsed_expression = parse(tokens);
-        profile.parameters.push(Rc::new(RefCell::new(Parameter{ expression: parsed_expression, value: 0.0})));
-    }
-    let mut x_0 = 0.0;
-    let mut y_0 = 0.0;
+    unimplemented!()
     
-    let steps = 100;
-    for t in 0..(steps+1) {
-        let t_flt = (t as f64)/(steps as f64);
-        profile.parameters[0].borrow_mut().expression=vec![t_flt.to_string()];
-        profile.parameters[0].borrow_mut().value=t_flt;
-        for _ in 0..2 {
-            for parameter in &profile.parameters {
-                parameter.borrow_mut().update_value(&profile.parameters);
-            }
-        }
-        let index = (*SEGMENTS.lock().unwrap())[segment];
-
-        profile.parameters[index].borrow_mut().update_value(&profile.parameters);
-        profile.parameters[index+1].borrow_mut().update_value(&profile.parameters);
-        let x = profile.parameters[index].borrow().value;
-        let y = profile.parameters[index+1].borrow().value;
-        if t_flt > 0.0 {
-            draw_line((x_0,y_0), (x,y), color);
-        }
-
-        x_0 = x;
-        y_0 = y;
-    }
 }
 
 //TODO: add thickness
+//TODO: redo for bresenhams?
 fn draw_line(pos_0: (f64,f64), pos_1: (f64,f64), color: [u8;3]) {
     let mut dx = pos_1.0 - pos_0.0;
     let mut dy = pos_1.1 - pos_0.1;
@@ -98,26 +68,7 @@ fn draw_line(pos_0: (f64,f64), pos_1: (f64,f64), color: [u8;3]) {
 //TODO: fix
 #[tauri::command]
 fn update_parameter(expressions: Vec<String>) -> Vec<f64> {
-    let mut profile = Profile::default();
-    for expression in expressions {
-        let tokens= tokenize(&expression);
-
-        let parsed_expression = parse(tokens);
-        profile.parameters.push(Rc::new(RefCell::new(Parameter{ expression: parsed_expression, value: 0.0})));
-    }
-    for _ in 0..2 {
-        for parameter in &profile.parameters {
-            parameter.borrow_mut().update_value(&profile.parameters);
-        }
-    }
-    
-    let mut values = Vec::new();
-
-    for parameter in &profile.parameters {
-            values.push(parameter.borrow().value);
-        }
-
-    values
+    unimplemented!()
 }
 
 #[tauri::command]

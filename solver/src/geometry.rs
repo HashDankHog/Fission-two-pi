@@ -1,48 +1,52 @@
-//this file might be deleted at a later date, but currently this file might contain structures and methods related to 
-//fundemental geometry operations
-//AKA planes, spheres, distances, segments/lines, intersections, and other things ig idk
 use crate::parameter::Parameter;
-use std::{rc::Rc, cell::RefCell};
+use crate::matrix::Jacobian;
+use crate::matrix::Matrix;
 
-
-pub struct Segment(Parameter, Parameter);
-
-pub struct Profile {
-    pub parameters: Vec<Rc<RefCell<Parameter>>>,
-    pub indices: Vec<usize>,
+#[derive(Clone)]
+pub enum Constraint {
+    Offset(Vec<(Parameter, usize)>),
+    Distance{ point_1: usize, point_2: usize, distance: Parameter },
+    Angle{ point_1: usize, point_2: usize, point_3: usize, angle: Parameter }
 }
 
+pub enum Connection {
+    Line{ point_1: usize, point_2: usize },
+    Arc{ point_1: usize, point_2: usize, point_3: usize }
+}
 
-impl Default for Profile {
-    fn default() -> Self {
-        Profile {
-            parameters: Vec::new(),
-            indices: Vec::new(),
-        }
-    }
+pub struct Point(pub Vec<f64>);
+
+pub struct Profile {
+    dimension: usize,
+    connections: Vec<Connection>,
+    constraint_matrix: Jacobian,
+    points: Vec<f64>,
 }
 
 impl Profile {
-    pub fn add_segment(&mut self, segment: Segment) {
-        let index = self.parameters.len();
-        self.indices.push(index);
-        self.parameters.push(Rc::new(RefCell::new(segment.0))); //now that I am looking at this, I am pretty sure I dont need rc<refcell<>>
-        self.parameters.push(Rc::new(RefCell::new(segment.1)));
+    pub fn points(&self) -> Vec<Point> {
+        let mut points = Vec::new();
+        let point_number = self.points.len()/self.dimension;
+        for point in 0..point_number {
+            points.push(Point(self.points[point*self.dimension..(point*self.dimension+self.dimension)].to_vec()))
+        }
+        points
     }
-
-    pub fn plot(&mut self, t: f64) -> (f64, f64){
-        *(self.parameters[0].borrow_mut()) = Parameter{expression: vec![t.to_string()], value: t};
-        let index = usize::from(t.abs().trunc() as u16); //trunc and abs might be redundent but idgaf to test it rn
-        let parameter = self.indices[index];
-
-        self.parameters[parameter].borrow_mut().update_value(&self.parameters);
-        let x = self.parameters[parameter].borrow().value;
-
-        self.parameters[parameter + 1].borrow_mut().update_value(&self.parameters);
-        let y = self.parameters[parameter + 1].borrow().value;
-
-        (x,y)
+    pub fn update(&mut self) {
+        let point_dimension = self.points.len();
+        
+    }
+    pub fn plot(&self) {
+        unimplemented!()
+    }
+    pub fn add_constraint(&mut self, constraint: Constraint) {
+        unimplemented!()
+    }
+    pub fn add_connection(&mut self, connection: Connection) {
+        unimplemented!()
+    }
+    pub fn add_point(&mut self, point: Point) {
+        unimplemented!()
     }
     
 }
-

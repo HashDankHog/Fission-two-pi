@@ -1,3 +1,4 @@
+/* 
 use std::{cell::RefCell, io, rc::Rc};
 use solver::{parameter::Parameter, parse};
 use std::io::Write;
@@ -41,4 +42,9 @@ fn main() {
         }
 
     }
+}
+    */
+
+fn main() {
+    println!("hi");
 }

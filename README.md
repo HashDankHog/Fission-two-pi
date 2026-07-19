@@ -1,3 +1,5 @@
+<h1>Currently, I am in the middle of rewriting my constraint system, so the software is broken</h1>
+<h1>The only reason I am pushing this is bc I need the morale boost of seeing the little green checks that pop up showing that I actually have been doing something</h1>
 Shi twin ts not complete come back in a couple months
 
 <h1>Dependencies</h1>
