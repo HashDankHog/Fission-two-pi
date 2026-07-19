@@ -113,6 +113,21 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         r
     }
 
+    ///```
+    /// use solver::matrix::Matrix;
+    /// let mut a = Matrix {elements: vec![0,1], rows: 1, colums: 2};
+    /// a.append_row(&vec![2,3]);
+    /// assert_eq!(a, Matrix {elements: vec![0,1,2,3], rows: 2, colums: 2})
+    /// ```
+    //TODO: return result
+    pub fn append_row(&mut self, row: &Vec<T>) {
+        if row.len() != self.colums { panic!("ouu shi"); }
+        for colum in 0..self.colums {
+            self.elements.insert(self.colums*(self.rows) + colum, row[colum].clone());
+        }
+        self.rows += 1;
+    }
+
     /// Returns any colum of a matrix as a vector
     /// # Examples
     /// ```
@@ -128,6 +143,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         }
         r
     }
+
     //TODO: return result
     pub fn append_colum(&mut self, colum: &Vec<T>) {
         if colum.len() != self.rows { panic!("ouu shi"); }
