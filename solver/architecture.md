@@ -46,3 +46,5 @@ So far goal **1** is almost entirely complete, with some major room for optimiza
  I should probably reasearch how nalgebra does it
  My first reaction is to find a basis using the null space, colum space, but that doesnt solve my issue of not knowing which parameters are free
  I could do it so I have a basis where some of my vectors are 0, which would be redundant, but I can use to my advantage
+ ### Solution
+ I looked for an example of how numpy did it and its litterally just particular + associated homogenous like I learned in diff eq. Ive decided that I don't need to know which parameter is which for a whole list of reasons so ig I will get started on that
