@@ -283,7 +283,7 @@ pub fn interpret(parsed_expression: &Vec<Token<f64>>) -> Option<Parameter> {
     while let Some(token) = tokens.pop() {
         match token {
             Token::Number(num) => output_queue.push(Parameter(Box::new(move |_p| num))),
-            Token::Parameter(index) => output_queue.push(Parameter(Box::new(move |p| p[index]))),
+            Token::Parameter(index) => output_queue.push(Parameter(Box::new(move |p| p.0[index]))),
             Token::Operator(op) => {
                 let param_1: Parameter;
                 let param_2: Parameter;

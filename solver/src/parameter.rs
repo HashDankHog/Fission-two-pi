@@ -1,36 +1,36 @@
 use std::sync::{LazyLock, Mutex};
 use dyn_clone::DynClone; //TODO: create my own hand rolled version once I understand why it works
 use std::ops::{Add, Sub, Mul, Div, Neg};
-
+use crate::vec::NumVec;
 use crate::function::*;
 
 static STEP: f64 = 0.00005;
 
 
-static VALUES: LazyLock<Mutex<Vec<f64>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+static VALUES: LazyLock<Mutex<NumVec<f64>>> = LazyLock::new(|| Mutex::new(NumVec(Vec::new())));
 
 #[derive(Clone)]
 pub struct Parameters(pub Vec<Parameter>);
 impl Parameters {
     pub fn update(&self) {
         let mut old_values = VALUES.lock().unwrap();
-        let mut new_values = vec![0.0; old_values.len()];
+        let mut new_values = vec![0.0; old_values.0.len()];
         for index in 0..self.0.len() {
             new_values[index] = self.0[index].0(&old_values);
         }
-        *old_values = new_values.clone();
+        *old_values = NumVec(new_values).clone();
     }
 }
 
 dyn_clone::clone_trait_object!(Expression);
 //from here to line 27 was written by claude
 //TODO: replace with my own implementation, if possible
-pub trait Expression: Fn(&Vec<f64>) -> f64 + DynClone {}
+pub trait Expression: Fn(&NumVec<f64>) -> f64 + DynClone {}
 
 
 impl<T> Expression for T
 where
-    T: 'static + Fn(&Vec<f64>) -> f64 + Clone,
+    T: 'static + Fn(&NumVec<f64>) -> f64 + Clone,
 {}
 // TODO: rewrite this doc segment to take advantage of code hiding
 /// Arguably the core of the entirity of Parametrox
@@ -160,7 +160,6 @@ impl Pow for Parameter {
     }
 }
 
-use crate::vec::add;
 impl Diff for Parameter {
     /// Returns a Parameter that approximates the partial deriviatiave at any point
     /// While differentiation is closed, the anonomyous nature of closures makes it, at least to my knowledge, impossible to symbollically/automatically compute
@@ -184,7 +183,9 @@ impl Diff for Parameter {
     fn diff(self, of: usize) -> Parameter {
         //I HATE ITERATORS
         Parameter(Box::new(move |p| (
-            self.0(&add(p,&(p.into_iter().enumerate().map(|(index, _val )| if index == of { STEP } else { 0.0 }).collect())).unwrap()) - self.0(p)) / STEP))
+            self.0(&p.add(&
+                NumVec(p.0.clone().into_iter().enumerate().map(|(index, _val )| if index == of { STEP } else { 0.0 }).collect())).unwrap()) 
+                - self.0(p)) / STEP))
     }
 }
 
