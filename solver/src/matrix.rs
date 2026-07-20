@@ -3,7 +3,7 @@
 
 use crate::parameter::{Parameter, Parameters};
 use std::ops::{Add, Div, Mul, Sub, Neg};
-use crate::vec::{arg_max, dot_prod};
+use crate::vec::NumVec;
 use crate::Value;
 
 pub enum EchelonForm {
@@ -17,9 +17,10 @@ pub enum EchelonForm {
 /// ```
 /// //this example does not work currently bc I am extremely lazy and cant be fucked to implement a extremely simple function
 /// use solver::matrix::Matrix;
+/// use solver::vec::NumVec;
 /// let mut A = Matrix {elements: vec![1.0,1.0,1.0,-1.0], rows: 2, colums: 2 };
 /// let B = vec![2.0, 0.0];
-/// assert_eq!(A.solve_for(&B), Some(Matrix { elements: vec![1.0,1.0], rows:2, colums: 1}));
+/// assert_eq!(A.solve_for(&NumVec(B)), Some(Matrix { elements: vec![1.0,1.0], rows:2, colums: 1}));
 /// ```
 #[derive(PartialEq, Debug, Clone)]
 pub struct Matrix<T: From<bool> + 
@@ -101,29 +102,34 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// # Examples
     /// ```
     /// use solver::matrix::Matrix;
+    /// use solver::vec::NumVec;
     /// let A = Matrix {elements: vec![1.0, 2.0, 3.0, 4.0], rows: 2, colums: 2};
-    /// assert_eq!(A.row(0), vec![1.0, 2.0]); 
+    /// assert_eq!(A.row(0), Ok(NumVec(vec![1.0, 2.0]))); 
     /// ```
     //TODO: return result instead of vec(?)
-    pub fn row(&self, row: usize) -> Vec<T> {
+    pub fn row(&self, row: usize) -> Result<NumVec<T>, & 'static str> {
+        if row >= self.rows {
+            return Err("cannot acces row outside of bounds");
+        }
         let mut r = Vec::new();
         for colum in 0..self.colums {
             r.push(self.element(row,colum));
         }
-        r
+        Ok(NumVec(r))
     }
 
     ///```
     /// use solver::matrix::Matrix;
+    /// use solver::vec::NumVec;
     /// let mut a = Matrix {elements: vec![0,1], rows: 1, colums: 2};
-    /// a.append_row(&vec![2,3]);
+    /// a.append_row(&NumVec(vec![2,3]));
     /// assert_eq!(a, Matrix {elements: vec![0,1,2,3], rows: 2, colums: 2})
     /// ```
     //TODO: return result
-    pub fn append_row(&mut self, row: &Vec<T>) {
-        if row.len() != self.colums { panic!("ouu shi"); }
+    pub fn append_row(&mut self, row: &NumVec<T>) {
+        if row.0.len() != self.colums { panic!("ouu shi"); }
         for colum in 0..self.colums {
-            self.elements.insert(self.colums*(self.rows) + colum, row[colum].clone());
+            self.elements.insert(self.colums*(self.rows) + colum, row.0[colum].clone());
         }
         self.rows += 1;
     }
@@ -132,23 +138,27 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// # Examples
     /// ```
     /// use solver::matrix::Matrix;
+    /// use solver::vec::NumVec;
     /// let A = Matrix { elements: vec![1.0,2.0,3.0,4.0], rows: 2, colums: 2};
-    /// assert_eq!(A.colum(1), vec![2.0,4.0]);
+    /// assert_eq!(A.colum(1), Ok(NumVec(vec![2.0,4.0])));
     /// ```
     //TODO: return result instead of vec(?)
-    pub fn colum(&self, colum: usize) -> Vec<T> {
+    pub fn colum(&self, colum: usize) -> Result<NumVec<T>, & 'static str> {
         let mut r = Vec::new();
+        if colum >= self.colums{
+            return Err("cannot access colum outside of bounds");
+        }
         for row in 0..self.rows {
             r.push(self.element(row,colum));
         }
-        r
+        Ok(NumVec(r))
     }
 
     //TODO: return result
-    pub fn append_colum(&mut self, colum: &Vec<T>) {
-        if colum.len() != self.rows { panic!("ouu shi"); }
+    pub fn append_colum(&mut self, colum: &NumVec<T>) {
+        if colum.0.len() != self.rows { panic!("ouu shi"); }
         for row in 0..self.rows {
-            self.elements.insert((self.colums+1)*(row) + (self.colums), colum[row].clone());
+            self.elements.insert((self.colums+1)*(row) + (self.colums), colum.0[row].clone());
         }
         self.colums += 1;
     }
@@ -212,8 +222,8 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// ```
     pub fn find_pivot(&self, row: usize) -> Option<usize> { 
         let items = self.row(row);
-        for element in 0..items.len() {
-            match items[element].clone().value() {
+        for element in 0..items.clone().unwrap().0.len() {
+            match items.clone().unwrap().0[element].clone().value() {
                 0.0 => {},
                 _ => return Some(element)
             }   
@@ -282,7 +292,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         for row in 0..(self.rows-1) {
             //the mapping here is a way to get around the fact that abs is not a generic trait
             //we cannot use arg_min because of the edge case of rows that already have a 0 element
-            self.swap_row(row, arg_max(&self.colum(row).iter().map(|x| (*x).clone()*(*x).clone()).collect::<Vec<_>>()[row..])+row); //when I swap back to &vec<T>: look into clone_into()
+            self.swap_row(row, NumVec(self.colum(row).unwrap().0.iter().map(|x| (*x).clone()*(*x).clone()).collect()).arg_max() + row); //fix this mess please
             let pivot = self.element(row, row);
             match pivot.clone().value() {
                 0.0 => {},
@@ -317,7 +327,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
             let pivot_value;
             match self.find_pivot(row) {
                 Some(pivot) => {
-                    pivot_value = self.row(row)[pivot].clone();
+                    pivot_value = self.row(row).unwrap().0[pivot].clone();
                     self.scale_row(row, pivot_value.clone()/(pivot_value.clone()*pivot_value.clone())); //this is the closest I can get rn to writing 1/pivot_value since generics are hard and annoying
                     for row_2 in row+1..rows {
                         let p = self.find_pivot(row_2);
@@ -352,7 +362,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         let result = Matrix {elements: vec![self.element(0,0).clone(); self.rows * matrix.colums], rows: self.rows, colums: matrix.colums};
 
         Some(
-        result.iterate(|row, colum| dot_prod(&self.row(row), &matrix.colum(colum)).unwrap()
+        result.iterate(|row, colum| self.row(row).unwrap().dot_prod(&matrix.colum(colum).unwrap()).unwrap()
         ))
     }
     
@@ -391,7 +401,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         for row in 0..(self.rows-1) {
             //the mapping here is a way to get around the fact that abs is not a generic trait
             //we cannot use arg_min because of the edge case of rows that already have a 0 element
-            let row_2 = arg_max(&temp.colum(row).iter().map(|x| (*x).clone()*(*x).clone()).collect::<Vec<_>>()[row..])+row;
+            let row_2 = NumVec(temp.colum(row).unwrap().0.iter().map(|x| (*x).clone()*(*x).clone()).collect()).arg_max() + row;
             temp.swap_row(row, row_2);
             inverse.swap_row(row, row_2); //when I swap back to &vec<T>: look into clone_into()
             let pivot = temp.element(row, row);
@@ -412,7 +422,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
             let pivot_value;
             match temp.find_pivot(row) {
                 Some(pivot) => {
-                    pivot_value = temp.row(row)[pivot].clone();
+                    pivot_value = temp.row(row).unwrap().0[pivot].clone();
                     temp.scale_row(row, pivot_value.clone()/(pivot_value.clone()*pivot_value.clone()));
                     inverse.scale_row(row, pivot_value.clone()/(pivot_value.clone()*pivot_value.clone())); //this is the closest I can get rn to writing 1/pivot_value since generics are hard and annoying
                     for row_2 in row+1..rows {
@@ -437,7 +447,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     pub fn determinant(&self) -> T {self.element(0,0).clone()}
     
     
-    pub fn solve_for(&self, value: &Vec<T>) -> Option<Matrix<T>> {
+    pub fn solve_for(&self, value: &NumVec<T>) -> Option<Matrix<T>> {
         let mut solution = self.clone();
         solution.append_colum(value);
         solution.to_red_row_form();
@@ -449,7 +459,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
                 _ => {}
             }
         }
-        Some(Matrix{ elements: solution.colum(solution.colums-1), rows: solution.rows, colums: 1})
+        Some(Matrix{ elements: solution.colum(solution.colums-1).unwrap().0, rows: solution.rows, colums: 1})
     }
     
 }
