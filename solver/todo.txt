@@ -1,34 +1,20 @@
 TODO:
     PARSE.RS
-        - Refactor parse
-        - Tokenizing prefixes
         - Add test cases
-        - Refactor interpret
-        - Clean tokenize
         - Add stuff
-        - fix Tokenizing for functions(Half done but poor solution)
         - refactor test cases(look into macros)
     MATRIX.RS
         - Augmented Matrices
-        - Refactor for parameter
+        - Basis's
         - Refactor tests
-        - Gaussian Elimination
         - Decomposition
         - Parrelalization
         - Strassens Algorithm (?)
-        - clean up closures with addassign
     FUNCTION.RS
-        - Runge-Kunta
         - Linearization
-        - Gradients
-        - Derivitives
         - Integrals
-        - Parametric Functions (?)
     GEOMETRY.RS
-        - Conic Sections
-        - Planes
-        - Transformations
-        - Regions/Areas
+        - Profile
     GEOMERTY/CSG.RS
         - CSG Trees
         - Primitives
@@ -41,20 +27,11 @@ TODO:
         - Sweeping
         - SDF Generation
     PARAMETER.RS
-        - Parameter sets
-            - Recursive types?
-        - Remove value
-        - Mean Squared Error
-        - Constraints(Half done but needs work and testing)
-        - Parametric Functions
         - Testing testing and more testing
         - add traits for addassign, etc
-        - create macros for operator overloads(?)
     OPTIMIZE.RS
-        - Gradient Descent
-        - Newton-Raphsom
-        - Simplex Method (?)
-        - Method of Least Squares (?)
+        - Jacobian
+        - Continuation
 
     
 
