@@ -117,4 +117,24 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> NumVec<T> {
         }
         Some(Self(result))
     } 
+
+    pub fn scale(&self, by: T ) -> Self {
+        let mut result = Self(Vec::new());
+        for element in self.0.clone() {
+            result.0.push(element*by.clone());
+        }
+        result
+    }
+
+    pub fn push(&mut self, element: T) {
+        self.0.push(element);
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn pop(&mut self) {
+        self.0.pop();
+    }
 }
