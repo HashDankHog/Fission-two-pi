@@ -11,16 +11,25 @@ pub enum EchelonForm {
     Row,
     RowReduced,
 }
-
+#[derive(PartialEq, Debug, Clone)]
+pub enum Solution<T: From<bool> + 
+Add<Output = T>  + 
+Sub<Output = T>  +
+Mul<Output = T>  +
+Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> {
+    Unique(NumVec<T>),
+    Inconsistant,
+    Infinite{particular: NumVec<T>, homogeneous: Vec<NumVec<T>>}
+}
 /// A 2D structure for operating on sets of numbers
 /// # Examples
 /// ```
 /// //this example does not work currently bc I am extremely lazy and cant be fucked to implement a extremely simple function
-/// use solver::matrix::Matrix;
+/// use solver::matrix::{Matrix, Solution};
 /// use solver::vec::NumVec;
 /// let mut A = Matrix {elements: vec![1.0,1.0,1.0,-1.0], rows: 2, colums: 2 };
 /// let B = vec![2.0, 0.0];
-/// assert_eq!(A.solve_for(&NumVec(B)), Some(Matrix { elements: vec![1.0,1.0], rows:2, colums: 1}));
+/// assert_eq!(A.solve_for(&NumVec(B)), Solution::Unique(NumVec(vec![1.0,1.0])));
 /// ```
 #[derive(PartialEq, Debug, Clone)]
 pub struct Matrix<T: From<bool> + 
@@ -446,20 +455,47 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// not implemented yet due to general lazieness
     pub fn determinant(&self) -> T {self.element(0,0).clone()}
     
-    
-    pub fn solve_for(&self, value: &NumVec<T>) -> Option<Matrix<T>> {
+    /// solves a linear system for a specified value
+    /// returns a Solution Enum depending on the number of solutions
+    /// if there are infinite solutions, we return the particular solution, alongside its associated homogenous solution
+    /// # Examples
+    /// ```
+    /// use solver::matrix::{Matrix, Solution};
+    /// use solver::vec::NumVec;
+    /// let a = Matrix { elements: vec![1.0,0.0,2.0,0.0,1.0,2.0], rows: 2, colums: 3};
+    /// let b = NumVec(vec![1.0,2.0]);
+    /// assert_eq!(a.solve_for(&b), Solution::Infinite{ particular: b, homogeneous: vec![NumVec(vec![-2.0,-2.0,1.0])]})
+    /// ```
+    pub fn solve_for(&self, value: &NumVec<T>) -> Solution<T> {
         let mut solution = self.clone();
+        let mut pivots = Vec::new();
         solution.append_colum(value);
         solution.to_red_row_form();
         //this logic works because of a few guarentees one can make based off of how gaussian elimination works
         for row in 0..solution.rows {
             match solution.find_pivot(row){
-                Some(x) if x == solution.colums - 1 => { return None },
-                None => return Some(solution),
-                _ => {}
+                Some(x) if x == solution.colums - 1 => return Solution::Inconsistant,
+                None => {},
+                Some(x) => pivots.push(x)
             }
         }
-        Some(Matrix{ elements: solution.colum(solution.colums-1).unwrap().0, rows: solution.rows, colums: 1})
+        
+        let mut basis = Vec::new();
+        for i in 0..solution.colums-1 {
+            if !pivots.contains(&i) {
+                let mut base = solution.colum(i).unwrap().scale(-T::from(true));
+                for j in base.len()..self.colums {
+                    if j == i {
+                        base.push(T::from(true))
+                    } else {
+                        base.push(T::from(false))
+                    }
+                }
+                basis.push(base);
+            }
+        }
+        if basis.len() == 0 { return Solution::Unique(solution.colum(solution.colums-1).unwrap()) }
+        Solution::Infinite{particular: solution.colum(solution.colums -1).unwrap(), homogeneous: basis}
     }
     
 }
