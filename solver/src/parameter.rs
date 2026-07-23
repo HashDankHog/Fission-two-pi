@@ -7,7 +7,7 @@ use crate::function::*;
 static STEP: f64 = 0.00005;
 
 
-static VALUES: LazyLock<Mutex<NumVec<f64>>> = LazyLock::new(|| Mutex::new(NumVec(Vec::new())));
+pub static VALUES: LazyLock<Mutex<NumVec<f64>>> = LazyLock::new(|| Mutex::new(NumVec(Vec::new())));
 
 #[derive(Clone)]
 pub struct Parameters(pub Vec<Parameter>);
@@ -39,23 +39,23 @@ where
 /// # Examples
 /// ```
 /// use solver::parameter::Parameter;
-/// 
+/// use solver::vec::NumVec;
 /// // here we define our set of inputs
-/// let mut p = vec![0.0,1.0,2.0];
+/// let mut p = NumVec(vec![0.0,1.0,2.0]);
 /// 
 /// //box around the closure is nesscesary due to how rust handles trait objects
-/// let x0 = Parameter(Box::new(|p| p[0] + 1.0));
+/// let x0 = Parameter(Box::new(|p| p.0[0] + 1.0));
 /// 
 /// // lets define another output parameter
-/// let x1 = Parameter(Box::new(|p| p[1] + 1.0));
+/// let x1 = Parameter(Box::new(|p| p.0[1] + 1.0));
 /// 
 /// assert_eq!(x0.0(&p), 1.0);
 /// assert_eq!(x1.0(&p),2.0);
 /// 
 /// //we can also change p
-/// p[0] = 1.0;
+/// p.0[0] = 1.0;
 /// assert_eq!(x0.0(&p), 2.0);
-/// p[0] = 0.0;
+/// p.0[0] = 0.0;
 /// 
 /// assert_eq!((x0/x1).0(&p), 0.5);
 /// ```
@@ -168,11 +168,12 @@ impl Diff for Parameter {
     /// ```
     /// use solver::parameter::Parameter;
     /// use solver::function::Diff;
+    /// use solver::vec::NumVec;
     /// // here we define our set of inputs
-    /// let mut p = vec![1.0];
+    /// let mut p = NumVec(vec![1.0]);
     /// 
     /// // p0 + 1
-    /// let x0 = Parameter(Box::new(|p| p[0] + 1.0));
+    /// let x0 = Parameter(Box::new(|p| p.0[0] + 1.0));
     /// 
     /// // dx0/dp0
     /// let x1 = x0.diff(0);
