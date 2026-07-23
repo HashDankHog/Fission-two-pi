@@ -533,16 +533,110 @@ Neg<Output = Self> + Clone + Value + PartialOrd> IdentityMatrix for T {
         identity
     }
 }
-pub struct Jacobian(pub Matrix<Parameter>);
+
+
+pub struct Jacobian {
+    pub parameters: NumVec<Parameter>,
+    pub inputs: NumVec<Parameter>,
+    pub matrix: Matrix<Parameter>,
+    iter: usize
+}
 impl Jacobian {
-    pub fn solve(&mut self, guess: &Vec<f64>) -> Vec<f64> {
-        unimplemented!()
+    pub fn set_iterations(&mut self, num: usize) {
+        self.iter = num;
+    }
+    fn iterate(&mut self, iteration: usize) -> Solution<Parameter> {
+        match self.matrix.solve_for(&NumVec(vec![Parameter::default(); self.matrix.rows])) {
+            Solution::Inconsistant => return Solution::Inconsistant,
+            Solution::Unique(n) if iteration < self.iter => {
+                self.inputs = self.inputs.add(&n.scale(-Parameter::from(true))).unwrap();
+                
+                return self.iterate(iteration + 1);
+            },
+            Solution::Infinite { particular: p, homogeneous: _ } if iteration < self.iter => {
+                self.inputs = self.inputs.add(&p.scale(-Parameter::from(true))).unwrap();
+                return self.iterate(iteration + 1);
+            },
+            Solution::Unique(n) => {
+                self.inputs = self.inputs.add(&n).unwrap();
+                return Solution::Unique(self.inputs.clone());
+            }
+            Solution::Infinite { particular: p, homogeneous: h } => {
+                self.inputs = self.inputs.add(&p.scale(-Parameter::from(true))).unwrap();
+                return Solution::Infinite { particular: self.inputs.clone(), homogeneous: h }
+            }
+        }
+    }
+    /// solves a system of non linear equations using newtons method
+    /// # Examples
+    /// ```
+    /// use solver::matrix::{Jacobian, Solution};
+    /// use solver::vec::NumVec;
+    /// use solver::parameter::{Parameter, Parameters};
+    /// 
+    /// let b = vec![0.0,0.0];
+    /// let constraint = Parameters(vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0))),Parameter(Box::new(|p| (p.0[1]/p.0[0]-1.0).powf(2.0)))]);
+    /// let mut mat = Jacobian::from((constraint, &b));
+    /// println!("{}, {}", mat.rows, mat.colums);
+    /// let mut results = Vec::new();
+    /// if let Solution::Unique(s) = mat.solve() {
+    ///     for par in s.0 {
+    ///         results.push(par.0(&NumVec(b.clone())));
+    ///     }
+    /// }
+    /// println!("{:?}", results);
+    /// assert_eq!(1.0,2.0);
+    /// ```
+    pub fn solve(&mut self) -> Solution<Parameter> {
+        self.iterate(0)
     }
 }
 use crate::function::Diff;
 impl From<(Parameters, &Vec<f64>)> for Jacobian{ 
     fn from(value: (Parameters, &Vec<f64>)) -> Self {
         let jacobian = Matrix { elements : vec![ Parameter::default(); value.1.len()*value.0.0.len()], rows: value.1.len(), colums: value.0.0.len() };
-        Jacobian(jacobian.iterate(|row, colum| value.0.0[row].clone().diff(colum)))
+        Jacobian {
+            parameters: NumVec(value.0.0.clone()),
+            inputs: NumVec(vec![Parameter::default(); value.1.len()]),
+            matrix: jacobian.iterate(|row, colum| value.0.0[row].clone().diff(colum)),
+            iter: 10
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parameter::VALUES;
+    #[test]
+    fn it_works() {
+        let b = vec![1.0,1.0];
+        *VALUES.lock().unwrap() = NumVec(vec![1.0,1.0]);
+        let constraint = Parameters(vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0))),Parameter(Box::new(|p| (p.0[1]/p.0[0]-1.0).powf(2.0)))]);
+        let mut mat = Jacobian::from((constraint, &b));
+        println!("{}, {}", mat.matrix.rows, mat.matrix.colums);
+        let mut results = Vec::new();
+        match mat.solve() {
+            Solution::Unique(s) => {
+                for c in s.0 {
+                    results.push(c.0(&NumVec(b.clone())));
+                }
+            }
+            Solution::Inconsistant => println!("sigh"),
+            Solution::Infinite { particular: p, homogeneous: h } => {
+                for c in p.0 {
+                    results.push(c.0(&NumVec(b.clone())));
+                }
+                for a in h {
+                    for c in a.0 {
+                        results.push(c.0(&NumVec(b.clone())));
+                    }
+                }
+                println!("ouu shi");
+            }
+        }
+        
+        println!("{:?}", results);
+        assert_eq!(1.0,2.0);
     }
 }
