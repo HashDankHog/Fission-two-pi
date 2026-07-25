@@ -1,7 +1,7 @@
 //! # Matrix
 //! Module for matrix and vector operations. 
 
-use crate::parameter::{Parameter, Parameters};
+use crate::parameter::Parameter;
 use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::vec::NumVec;
 use crate::Value;
@@ -581,13 +581,13 @@ impl Jacobian {
     }
 }
 use crate::function::Diff;
-impl From<(Parameters, &Vec<f64>)> for Jacobian{ 
-    fn from(value: (Parameters, &Vec<f64>)) -> Self {
-        let jacobian = Matrix { elements : vec![ Parameter::default(); value.1.len()*value.0.0.len()], rows: value.1.len(), colums: value.0.0.len() };
+impl From<(Vec<Parameter>, &Vec<f64>)> for Jacobian{ 
+    fn from(value: (Vec<Parameter>, &Vec<f64>)) -> Self {
+        let jacobian = Matrix { elements : vec![ Parameter::default(); value.1.len()*value.0.len()], rows: value.1.len(), colums: value.0.len() };
         Jacobian {
-            parameters: value.0.0.clone(),
-            inputs: NumVec(vec![0.0; value.1.len()]),
-            matrix: jacobian.iterate(|row, colum| value.0.0[row].clone().diff(colum)),
+            parameters: value.0.clone(),
+            inputs: NumVec(value.1.clone()),
+            matrix: jacobian.iterate(|row, colum| value.0[row].clone().diff(colum)),
             iter: 10
         }
     }
@@ -599,7 +599,7 @@ mod tests {
     #[test]
     fn it_works() {
         let b = vec![0.5,2.5];
-        let constraint = Parameters(vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0))),Parameter(Box::new(|p| (p.0[1]-p.0[0]).powf(2.0)))]);
+        let constraint = vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0))),Parameter(Box::new(|p| (p.0[1]-p.0[0]).powf(2.0)))];
         let mut mat = Jacobian::from((constraint, &b));
         println!("{}, {}", mat.matrix.rows, mat.matrix.colums);
         let mut results = Vec::new();
