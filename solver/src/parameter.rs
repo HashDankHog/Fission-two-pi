@@ -25,12 +25,12 @@ impl Parameters {
 dyn_clone::clone_trait_object!(Expression);
 //from here to line 27 was written by claude
 //TODO: replace with my own implementation, if possible
-pub trait Expression: Fn(&NumVec<f64>) -> f64 + DynClone {}
+pub trait Expression: Fn(&NumVec<f64>) -> f64 + DynClone + Send + Sync {}
 
 
 impl<T> Expression for T
 where
-    T: 'static + Fn(&NumVec<f64>) -> f64 + Clone,
+    T: 'static + Fn(&NumVec<f64>) -> f64 + Clone + Send + Sync,
 {}
 // TODO: rewrite this doc segment to take advantage of code hiding
 /// Arguably the core of the entirity of Parametrox
@@ -59,6 +59,7 @@ where
 /// 
 /// assert_eq!((x0/x1).0(&p), 0.5);
 /// ```
+// TODO: add a NumVec<f64> value to Parameter
 #[derive(Clone)]
 pub struct Parameter(pub Box<dyn Expression>);
 
