@@ -581,12 +581,12 @@ impl Jacobian {
     }
 }
 use crate::function::Diff;
-impl From<(Vec<Parameter>, &Vec<f64>)> for Jacobian{ 
-    fn from(value: (Vec<Parameter>, &Vec<f64>)) -> Self {
+impl From<(Vec<Parameter>, &NumVec<f64>)> for Jacobian{ 
+    fn from(value: (Vec<Parameter>, &NumVec<f64>)) -> Self {
         let jacobian = Matrix { elements : vec![ Parameter::default(); value.1.len()*value.0.len()], rows: value.1.len(), colums: value.0.len() };
         Jacobian {
             parameters: value.0.clone(),
-            inputs: NumVec(value.1.clone()),
+            inputs: value.1.clone(),
             matrix: jacobian.iterate(|row, colum| value.0[row].clone().diff(colum)),
             iter: 10
         }
@@ -598,12 +598,12 @@ mod tests {
     use super::*;
     #[test]
     fn it_works() {
-        let b = vec![0.5,2.5];
+        let b = NumVec(vec![0.5,2.5]);
         let constraint = vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0))),Parameter(Box::new(|p| (p.0[1]-p.0[0]).powf(2.0)))];
         let mut mat = Jacobian::from((constraint, &b));
         println!("{}, {}", mat.matrix.rows, mat.matrix.colums);
         let mut results = Vec::new();
-        match mat.solve(NumVec(b)) {
+        match mat.solve(b) {
             Solution::Unique(s) => {
                 for c in s.0 {
                     results.push(c);
