@@ -74,7 +74,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// # Panics
     /// Trying to access an element outside the bounds of the matrix will result in a panic
     pub fn element(&self, row: usize, colum: usize) -> T {
-        if row > self.rows || colum > self.colums {
+        if row > self.rows-1 || colum > self.colums-1 {
             panic!("tried accessing an out of bounds element");
         }
         self.elements[self.colums*row+colum].clone()
@@ -301,7 +301,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         for row in 0..(self.rows-1) {
             //the mapping here is a way to get around the fact that abs is not a generic trait
             //we cannot use arg_min because of the edge case of rows that already have a 0 element
-            self.swap_row(row, NumVec(self.colum(row).unwrap().0.iter().map(|x| (*x).clone()*(*x).clone()).collect()).arg_max() + row); //fix this mess please
+            self.swap_row(row, NumVec(self.colum(row).unwrap().0.iter().map(|x| (*x).clone()*(*x).clone()).collect::<Vec<T>>()[row..].to_vec()).arg_max() + row); //fix this mess please
             let pivot = self.element(row, row);
             match pivot.clone().value() {
                 0.0 => {},
@@ -587,7 +587,7 @@ impl Jacobian {
 use crate::function::Diff;
 impl From<(Vec<Parameter>, &NumVec<f64>)> for Jacobian{ 
     fn from(value: (Vec<Parameter>, &NumVec<f64>)) -> Self {
-        let jacobian = Matrix { elements : vec![ Parameter::default(); value.1.len()*value.0.len()], rows: value.1.len(), colums: value.0.len() };
+        let jacobian = Matrix { elements : vec![ Parameter::default(); value.1.len()*value.0.len()], rows: value.0.len(), colums: value.1.len() };
         Jacobian {
             parameters: value.0.clone(),
             inputs: value.1.clone(),
