@@ -233,7 +233,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         let items = self.row(row);
         for element in 0..items.clone().unwrap().0.len() {
             match items.clone().unwrap().0[element].clone().value() {
-                x if x < 0.1E-15 => {},
+                x if x.abs() < 0.1E-16 => {},
                 _ => return Some(element)
             }   
         }
@@ -309,6 +309,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
                     for row_2 in (row+1)..self.rows {
                         let scale = self.element(row_2,row)/pivot.clone();
                         self.add_row(row_2, row, -scale);
+                        self.set(row_2,row, T::from(false)); //way to reduce error
                     }
                 }
             }
@@ -338,6 +339,7 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
                 Some(pivot) => {
                     pivot_value = self.row(row).unwrap().0[pivot].clone();
                     self.scale_row(row, T::from(true)/(pivot_value.clone()));
+                    self.set(row, pivot, T::from(true)); //way to reduce fp error
                     for row_2 in row+1..rows {
                         let p = self.find_pivot(row_2);
                         match p {
@@ -605,7 +607,7 @@ mod tests {
         let b = NumVec(vec![0.5,2.5]);
         let constraint = vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0))),Parameter(Box::new(|p| (p.0[1]-p.0[0]).powf(2.0)))];
         let mut mat = Jacobian::from((constraint, &b));
-        println!("{}, {}", mat.matrix.rows, mat.matrix.colums);
+        
         let mut results = Vec::new();
         match mat.solve(b) {
             Solution::Unique(s) => {
