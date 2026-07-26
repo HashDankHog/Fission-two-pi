@@ -4,7 +4,7 @@ use crate::matrix::*;
 use crate::vec::NumVec;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Point(f64, f64, f64);
+pub struct Point(pub f64, pub f64, pub f64);
 
 pub struct Profile {
     pub connections: Vec<Connection>,
