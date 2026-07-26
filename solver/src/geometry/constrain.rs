@@ -7,10 +7,13 @@ fn point(points: &NumVec<f64>, point: usize) -> NumVec<f64> {
         points.0[point*3+2]
     ])
 }
+#[derive(Clone, Debug, PartialEq)]
 pub enum Constraint {
     Distance{point_1: usize, point_2: usize, distance: f64},
     Angle{point_1: usize, point_2: usize, point_3: usize, cosangle: f64}, 
-    Fix{point: usize, position: (f64,f64,f64)}, //I would have this as a num vec, but for some reason I cant due to some bs with lifetimes
+    FixX{point: usize, position: f64}, 
+    FixY{point: usize, position: f64},
+    FixZ{point: usize, position: f64}
 }
 
 impl Constraint {
@@ -44,13 +47,19 @@ impl Constraint {
                     ).powf(2.0)
                 ))
             },
-            Self::Fix { point: p1, position: pos } => {
+            Self::FixX { point: p1, position: pos } => {
                 Parameter(Box::new(move |p| 
-                (
-                    p.0[p1*3+0] - pos.0 +
-                    p.0[p1*3+1] - pos.1 +
-                    p.0[p1*3+2] - pos.2
-                ).powf(2.0)
+                (p.0[p1*3+0] - pos).powf(2.0)
+            ))
+            },
+            Self::FixY { point: p1, position: pos } => {
+                Parameter(Box::new(move |p| 
+                (p.0[p1*3+1] - pos).powf(2.0)
+            ))
+            },
+            Self::FixZ { point: p1, position: pos } => {
+                Parameter(Box::new(move |p| 
+                (p.0[p1*3+2] - pos).powf(2.0)
             ))
             }
         }
@@ -86,7 +95,12 @@ mod tests {
         let p = NumVec(vec![
             1.0,2.0,3.0
         ]);
-        let con = Constraint::Fix { point: 0, position: (1.0,2.0,3.0) };
-        assert_eq!(con.error().0(&p),0.0);
+        let con_x = Constraint::FixX { point: 0, position: 1.0 };
+        let con_y = Constraint::FixY { point: 0, position: 2.0 };
+        let con_z = Constraint::FixZ { point: 0, position: 3.0 };
+
+        assert_eq!(con_x.error().0(&p),0.0);
+        assert_eq!(con_y.error().0(&p),0.0);
+        assert_eq!(con_z.error().0(&p),0.0);
     }
 }
