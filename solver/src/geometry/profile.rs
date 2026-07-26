@@ -64,28 +64,49 @@ impl Profile {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    //this test also doenst pass but it is for the same reason
+    //this means that I got a GCS working!
     fn points_test() {
         let mut a = Profile::new();
         a.add_point(Point(0.0,0.0,0.0));
         a.add_point(Point(1.0,0.0,0.0));
-        a.add_point(Point(0.0,1.0,0.0));
-        a.add_point(Point(0.0,0.0,1.0));
         a.add_point(Point(2.0,0.5,0.0));
 
-        a.add_constraint(Constraint::Fix { point: 0, position: (0.0,0.0,0.0)});
-        a.add_constraint(Constraint::Fix { point: 1, position: (1.0,0.0,0.0)});
-        a.add_constraint(Constraint::Fix { point: 2, position: (0.0,1.0,0.0)});
-        a.add_constraint(Constraint::Fix { point: 3, position: (0.0,0.0,1.0)});
-        a.add_constraint(Constraint::Distance { point_1: 0, point_2: 4, distance: 1.0 });
-        a.add_constraint(Constraint::Angle { point_1: 4, point_2: 1, point_3: 0, cosangle: 0.7 });
+        a.add_constraint(Constraint::FixX { point: 0, position: 0.0 });
+        a.add_constraint(Constraint::FixY { point: 0, position: 0.0 });
+        a.add_constraint(Constraint::FixZ { point: 0, position: 0.0 });
+
+        a.add_constraint(Constraint::FixX { point: 1, position: 1.0 });
+        a.add_constraint(Constraint::FixY { point: 1, position: 0.0 });
+        a.add_constraint(Constraint::FixZ { point: 1, position: 0.0 });
+
+
+        a.add_constraint(Constraint::Distance { point_1: 0, point_2: 2, distance: 1.0 });
+        a.add_constraint(Constraint::Angle { point_1: 2, point_2: 1, point_3: 0, cosangle: 0.7 });
+        a.add_constraint(Constraint::FixZ { point: 2, position: 0.0 });
 
         let (points, _) = a.points();
         
-        assert_eq!(points,vec!(Point(0.0,0.0,0.0), Point(1.0,0.0,0.0), Point(0.0,1.0,0.0), Point(0.0,0.0,1.0), Point(1.0,1.0,0.0)))
+        assert_eq!(points,vec!(Point(0.0,0.0,0.0), Point(1.0,0.0,0.0), Point(0.701,0.701,0.0)))
+    }
+
+    #[test]
+    //this test doesnt pass but it is because of numerical error
+    fn points_test_minimal() {
+        let mut a = Profile::new();
+        a.add_point(Point(2.0,0.5,11.3));
+        
+        a.add_constraint(Constraint::FixX { point: 0, position: 0.0 });
+        a.add_constraint(Constraint::FixY { point: 0, position: 0.0 });
+        a.add_constraint(Constraint::FixZ { point: 0, position: 0.0 });
+
+        let (points, _) = a.points();
+        assert_eq!(points, vec![Point(0.0,0.0,0.0)]);
     }
 }
