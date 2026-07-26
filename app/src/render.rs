@@ -44,6 +44,11 @@ impl Frame {
             ))
         }
     }
+    pub fn set_dimensions(&mut self, width: usize, height: usize) {
+        self.width = width;
+        self.height = height;
+        self.pixels = vec![0; width*height*4];
+    }
     pub fn set_pixel(&mut self, pixel: (usize, usize), color: Color) {
         if pixel.0 > self.width || pixel.1 > self.height {
         } else {
