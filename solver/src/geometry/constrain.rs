@@ -1,5 +1,6 @@
 use crate::vec::NumVec;
 use crate::parameter::Parameter;
+use serde::{Serialize, Deserialize};
 fn point(points: &NumVec<f64>, point: usize) -> NumVec<f64> {
     NumVec(vec![
         points.0[point*3+0],
@@ -7,7 +8,7 @@ fn point(points: &NumVec<f64>, point: usize) -> NumVec<f64> {
         points.0[point*3+2]
     ])
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Constraint {
     Distance{point_1: usize, point_2: usize, distance: f64},
     Angle{point_1: usize, point_2: usize, point_3: usize, cosangle: f64}, 
