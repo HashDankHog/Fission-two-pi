@@ -1,7 +1,6 @@
-use std::ops::ControlFlow::{Break, Continue};
-
 use serde::{Serialize, Deserialize};
-
+use solver::geometry::profile::*;
+use solver::geometry::connection::Connection;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Color(pub u8,pub u8,pub u8, pub u8);
 
@@ -68,6 +67,41 @@ impl Frame {
         }
     }
     pub fn draw_line(&mut self, _point1: (usize, usize), _point2: (usize, usize)) {
+        unimplemented!()
+    }
+    pub fn draw_profile(&mut self, profile: &mut Profile){
+        let point_radius = 20;
+        let (points, _) = profile.points();
+        for point in points {
+            self.draw_rect((point.0 as usize -point_radius, point.1 as usize-point_radius), (point_radius*2,point_radius*2), Color(0,0,0,255));
+        }
+        for connection in profile.connections.clone() {
+            match connection {
+                _ => {} // unimplemented
+            }
+        }
+    }
+}
+
+pub struct Camera {
+    pub position: (f64, f64, f64),
+    pub heading: (f64, f64, f64),
+    pub focal_length: f64
+}
+impl Camera {
+    pub fn translate(&mut self, position: Point, heading: Point) {
+        self.position.0 += position.0;
+        self.position.1 += position.1;
+        self.position.2 += position.2;
+
+        self.heading.0 += heading.0;
+        self.heading.1 += heading.1;
+        self.heading.2 += heading.2;
+    }
+    fn project_point(&mut self, _point: Point) {
+        unimplemented!()
+    }
+    pub fn render_to(&self, _frame: &mut Frame) {
         unimplemented!()
     }
 }
