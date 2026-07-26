@@ -541,6 +541,10 @@ pub struct Jacobian {
     iter: usize
 }
 impl Jacobian {
+    pub const fn new() -> Self {
+        Jacobian { parameters: Vec::new(), inputs: NumVec(Vec::new()), matrix: 
+            Matrix {elements: Vec::new(), rows: 0, colums:0}, iter: 10 }
+    }
     pub fn set_iterations(&mut self, num: usize) {
         self.iter = num;
     }
