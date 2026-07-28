@@ -37,10 +37,10 @@ impl Frame {
             Err("attempted to read pixel outside of bounds")
         } else {
             Ok(Color(
-                self.pixels[4*(self.width*pixel.0+pixel.1)+0],
-                self.pixels[4*(self.width*pixel.0+pixel.1)+1],
-                self.pixels[4*(self.width*pixel.0+pixel.1)+2], 
-                self.pixels[4*(self.width*pixel.0+pixel.1)+3],
+                self.pixels[4*(self.width*pixel.1+pixel.0)+0],
+                self.pixels[4*(self.width*pixel.1+pixel.0)+1],
+                self.pixels[4*(self.width*pixel.1+pixel.0)+2], 
+                self.pixels[4*(self.width*pixel.1+pixel.0)+3],
             ))
         }
     }
@@ -52,17 +52,17 @@ impl Frame {
     pub fn set_pixel(&mut self, pixel: (usize, usize), color: Color) {
         if pixel.0 > self.width || pixel.1 > self.height {
         } else {
-            self.pixels[4*(self.width*pixel.0+pixel.1)+0] = color.0;
-            self.pixels[4*(self.width*pixel.0+pixel.1)+1] = color.1;
-            self.pixels[4*(self.width*pixel.0+pixel.1)+2] = color.2;
-            self.pixels[4*(self.width*pixel.0+pixel.1)+3] = color.3;
+            self.pixels[4*(self.width*pixel.1+pixel.0)+0] = color.0;
+            self.pixels[4*(self.width*pixel.1+pixel.0)+1] = color.1;
+            self.pixels[4*(self.width*pixel.1+pixel.0)+2] = color.2;
+            self.pixels[4*(self.width*pixel.1+pixel.0)+3] = color.3;
         }
     }
     pub fn clear(&mut self) {
         self.pixels = vec![0; self.pixels.len()];
     }
     pub fn draw_rect(&mut self, coord: (usize, usize), size: (usize, usize), color: Color) {
-        if coord.0 > self.width || coord.1 > self.height || coord.0+size.0> self.width || coord.1+size.1> self.height {
+        if coord.0 >= self.width || coord.1 >= self.height || coord.0+size.0 >= self.width || coord.1+size.1 >= self.height {
             return;
         }
         for height in coord.1..=(coord.1+size.1) {
