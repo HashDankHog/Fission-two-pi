@@ -9,17 +9,50 @@ which is now all the way down to 1ms
 import { populateRibbon } from "./modules/ribbon.ts";
 import { updateCanvas } from "./modules/viewport.ts";
 //import { dragElement } from "./modules/window.js";
+
+type FixX = {
+    "FixX": {
+        point: number,
+        position: number
+    }
+};
+type FixY = { 
+    "FixY": {
+        point: number,
+        position: number
+    }
+};
+type FixZ = { 
+    "FixZ": {
+        point: number,
+        position: number
+    }
+};
+type Distance = { 
+    "Distance": {
+        point_1: number,
+        point_2: number,
+        distance: number
+    }
+};
+type Angle = { 
+    "Angle": {
+        point_1: number,
+        point_2: number,
+        point_3: number,
+        angle: number
+    }
+};
+type Constraint = FixX | FixY | FixZ | Distance | Angle;
+
 const window_tauri: any = window;
 const { invoke } = window_tauri.__TAURI__.core;
 
 var c = document.getElementById("viewport_canvas") as HTMLCanvasElement;
 var ctx = c.getContext("2d") as CanvasRenderingContext2D;
-ctx.moveTo(0, 0);
-ctx.lineTo(c.getBoundingClientRect().width, c.getBoundingClientRect().height);
-ctx.stroke();
 
 
-invoke("create_canvas", {width: 1000, height: 1000});
+invoke("set_screen", {width: ctx.canvas.width, height: ctx.canvas.height});
 
 
 function resizeIframe(obj: HTMLIFrameElement) {
@@ -91,7 +124,7 @@ function closeWindow() {
     a.style.top = "-450px";
 }
 
-updateCanvas(ctx);
+//updateCanvas(ctx);
 let i = 100;
 async function animate() {
     
@@ -111,10 +144,19 @@ function plotToCanvas(){
     windowFrame.contentWindow.plot();
     updateCanvas(ctx);
 }
+var x: Constraint = {"FixX": {"point": 0, "position": 100.0}};
+var y: Constraint = {"FixY": {"point": 0, "position": 100.0}};
+var z: Constraint = {"FixZ": {"point": 0, "position": 0.0}};
+
+closeWindow();
+invoke("add_point", {point: [100.0, 100.0, 0.0]});
+invoke("add_constraint", {constraint: x });
+invoke("add_constraint", {constraint: y });
+invoke("add_constraint", {constraint: z });
+updateCanvas(ctx);
 const windowClose = document.getElementById("windowClose") as HTMLCanvasElement;
 const plot = document.getElementById("plot") as HTMLCanvasElement;
 windowClose.addEventListener("click", closeWindow);
 plot.addEventListener("click", () => requestAnimationFrame(plotToCanvas));
 
-ctx.fillStyle = "rgb(200 0 0)";
-ctx.fillRect(0, 0, 500, 500);
+
