@@ -47,6 +47,12 @@ fn remove_connection() {
 }
 
 #[tauri::command]
+fn add_point(state: State<'_, Mutex<AppState>>, point: (f64,f64,f64)) {
+   let mut state = state.lock().unwrap();
+   state.profile.add_point(Point(point.0,point.1,point.2));
+}
+
+#[tauri::command]
 fn set_parameters(_expressions: Vec<&str>) -> Vec<Result<f64, &'static str>> {
     unimplemented!()
 }
@@ -68,6 +74,7 @@ pub fn run() {
         remove_constraint,
         add_connection,
         remove_connection,
+        add_point,
         set_parameters,
         set_screen
         ])
