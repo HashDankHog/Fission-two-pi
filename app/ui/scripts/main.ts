@@ -9,11 +9,11 @@ which is now all the way down to 1ms
 import { populateRibbon } from "./modules/ribbon.ts";
 import { updateCanvas } from "./modules/viewport.ts";
 //import { dragElement } from "./modules/window.js";
-const thismightbetheworstlineofcodeiveeverwriten: any = window;
-const { invoke } = thismightbetheworstlineofcodeiveeverwriten.__TAURI__.core;
+const window_tauri: any = window;
+const { invoke } = window_tauri.__TAURI__.core;
 
-var c: any = document.getElementById("viewport_canvas");
-var ctx = c.getContext("2d");
+var c = document.getElementById("viewport_canvas") as HTMLCanvasElement;
+var ctx = c.getContext("2d") as CanvasRenderingContext2D;
 ctx.moveTo(0, 0);
 ctx.lineTo(c.getBoundingClientRect().width, c.getBoundingClientRect().height);
 ctx.stroke();
@@ -22,14 +22,9 @@ ctx.stroke();
 invoke("create_canvas", {width: 1000, height: 1000});
 
 
-
-
-
-
-function resizeIframe(obj: any) {
-    obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';
+function resizeIframe(obj: HTMLIFrameElement) {
+    obj.style.height = (obj.contentWindow as Window).document.documentElement.scrollHeight + 'px';
 }
-
 
 const myRequest = new Request("json/designRibbon.json");
 
@@ -45,26 +40,26 @@ fetch(myRequest)
 //TODO: fix
 
 // Make the DIV element draggable:
-dragElement(document.getElementById("window"));
+dragElement(document.getElementById("window") as HTMLCanvasElement);
 var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-var elmnt: any =document.getElementById("windowHeader");
-var win: any = document.getElementById("window");
+var elmnt =document.getElementById("windowHeader") as HTMLCanvasElement;
+var win = document.getElementById("window") as HTMLCanvasElement;
 elmnt.style.top="0px";
 elmnt.style.left="0px";
 win.style.top="0px";
 win.style.left="0px";
-function dragElement(elmnt: any) {
+function dragElement(elmnt: HTMLCanvasElement) {
     const body = document.querySelector('body');
     if (document.getElementById(elmnt.className + "Header")) {
         // if present, the header is where you move the DIV from:
-        const header: any = document.getElementById(elmnt.className + "Header");
-        header.addEventListener("onmousedown", dragMouseDown);
+        const header = document.getElementById(elmnt.className + "Header") as HTMLCanvasElement;
+        header.addEventListener("onmousedown", () => dragMouseDown);
     } else {
         // otherwise, move the DIV from anywhere inside the DIV:
         elmnt.onmousedown = dragMouseDown;
     }
 }
-function dragMouseDown(evt: any) {
+function dragMouseDown(evt: MouseEvent) {
     // get the mouse cursor position at startup:
     pos3 = evt.clientX;
     pos4 = evt.clientY;
@@ -73,7 +68,7 @@ function dragMouseDown(evt: any) {
     document.onmousemove = elementDrag;
 }
 
-function elementDrag(evt: any) {
+function elementDrag(evt: MouseEvent) {
     // calculate the new cursor position:
     pos1 = pos3 - evt.clientX;
     pos2 = pos4 - evt.clientY;
@@ -92,7 +87,7 @@ function closeDragElement() {
     document.onmousemove = null;
 }
 function closeWindow() {
-    const a: any = document.getElementById("window");
+    const a = document.getElementById("window") as HTMLCanvasElement;
     a.style.top = "-450px";
 }
 
@@ -116,8 +111,8 @@ function plotToCanvas(){
     windowFrame.contentWindow.plot();
     updateCanvas(ctx);
 }
-const windowClose: any = document.getElementById("windowClose");
-const plot: any = document.getElementById("plot");
+const windowClose = document.getElementById("windowClose") as HTMLCanvasElement;
+const plot = document.getElementById("plot") as HTMLCanvasElement;
 windowClose.addEventListener("click", closeWindow);
 plot.addEventListener("click", () => requestAnimationFrame(plotToCanvas));
 
