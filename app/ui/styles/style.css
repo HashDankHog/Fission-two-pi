@@ -12,17 +12,18 @@ th {
   padding: 10px 20px;
 }
 
-#window{
+.window{
   background-color: white;
   width: 450px;
   position:absolute;
   z-index: 9;
+  border: 1px solid black;
 }
 
-#windowHeader{
+.top{
   cursor: move;
 }
-#windowFrame{
+.frame{
   border: none;
   width: 100%;
   height: 100%;
