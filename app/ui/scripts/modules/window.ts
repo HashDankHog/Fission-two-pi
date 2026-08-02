@@ -28,7 +28,7 @@ export class Win {
         const button = this.#element("button", "close");
 
         button.textContent = "X";
-        button.addEventListener("mousedown", this.close_window);
+        button.addEventListener("mousedown", () => this.close_window());
 
         frame.setAttribute("src", iframe);
 
@@ -66,6 +66,7 @@ export class Win {
         
     }
     place(pos: [number, number], width: number, height: number) {
+        console.log("c");
         const win = document.getElementById(this.#id.toString() + "_" + "window") as HTMLCanvasElement;
         win.style.left = pos[0].toString() + "px";
         win.style.top  = pos[1].toString() + "px";
@@ -80,29 +81,36 @@ export class Win {
     }
     #drag(event: MouseEvent) {
         const delta = [event.x - this.#prevpos[0], event.y - this.#prevpos[1]];
+        this.#prevpos = [event.x, event.y];
         const rect = (document.getElementById(this.#id.toString() + "_" + "window") as HTMLCanvasElement)
             .getBoundingClientRect();
         if (this.#isdrag == false) {
             return ;
         }
         switch (this.#side) {
-            case ("top"): {
+            case "top": {
                 this.place([rect.x+delta[0],rect.y+delta[1]], rect.width, rect.height);
+                break;
             }
-            case ("right"): {
+            case "right": {
                 this.place([rect.x,rect.y], rect.width+delta[0],rect.height);
+                break;
             }
-            case ("right_corner"): {
+            case "right_corner": {
                 this.place([rect.x,rect.y], rect.width+delta[0], rect.height+delta[1]);
+                break;
             }
-            case ("bottom"): {
+            case "bottom": {
                 this.place([rect.x,rect.y], rect.width, rect.height+delta[1]);
+                break;
             }
-            case ("left_corner"): {
-                this.place([rect.x+delta[0],rect.y],rect.width-delta[0],rect.height-delta[1]);
+            case "left_corner": {
+                this.place([rect.x+delta[0],rect.y],rect.width-delta[0],rect.height+delta[1]);
+                break;
             }
-            case ("left"): {
+            case "left": {
                 this.place([rect.x+delta[0],rect.y],rect.width-delta[0],rect.height);
+                break;
             }
         }
     }
