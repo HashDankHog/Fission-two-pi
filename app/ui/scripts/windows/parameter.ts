@@ -1,5 +1,3 @@
-const thismightbetheworstlineofcodeiveeverwriten: any = window;
-const { invoke } = thismightbetheworstlineofcodeiveeverwriten.parent.__TAURI__.core;
 var segments = [];
 var parameter_num=0;
 function add_parameter() {
@@ -52,7 +50,7 @@ const godhelpusall: any = document.getElementById("Add Segment");
 ouushi.addEventListener("click", update);
 godhelpusall.addEventListener("click", add_segment);
 
-thismightbetheworstlineofcodeiveeverwriten.plot = function plot(){
+window_tauri.plot = function plot(){
     var expressions = [];
     const inputFields: any = document.getElementsByClassName("expression");
     for (let i = 0; i < inputFields.length; i+= 1) {
