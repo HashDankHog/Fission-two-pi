@@ -26,9 +26,13 @@ fetch(myRequest)
   })
   .catch(console.error);
 
-//updateCanvas(ctx);
+function plotToCanvas(){
+    invoke("clear_canvas");
+    updateCanvas(ctx);
+}
+
 const windowClose = document.getElementById("windowClose") as HTMLCanvasElement;
 const plot = document.getElementById("plot") as HTMLCanvasElement;
-//plot.addEventListener("click", () => requestAnimationFrame(plotToCanvas));
+plot.addEventListener("click", () => requestAnimationFrame(plotToCanvas));
 
 

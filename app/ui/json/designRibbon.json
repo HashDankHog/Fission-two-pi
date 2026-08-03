@@ -28,7 +28,7 @@
                     "name": "Add",
                     "src": "images/cad/add.png",
                     "action": [
-                        "Add"
+                        "add"
                     ]
                 }
             ]
