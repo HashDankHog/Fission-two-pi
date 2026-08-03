@@ -15,6 +15,7 @@ th {
 .window{
   background-color: white;
   width: 450px;
+  height: 450px;
   position:absolute;
   z-index: 9;
   border: 1px solid black;
@@ -22,6 +23,51 @@ th {
 
 .top{
   cursor: move;
+  width: 100%;
+  height: 20px;
+  border: 1px solid black;
+}
+.right{
+  cursor: e-resize;
+  position: absolute;
+  z-index: 10;
+  width: 14px;
+  height: 100%;
+  right: -5px;
+}
+.right_corner{
+  cursor: se-resize;
+  position: absolute;
+  z-index: 11;
+  width: 14px;
+  height: 14px;
+  bottom: -5px;
+  right: -5px;
+}
+.bottom{
+  cursor: s-resize;
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  height: 14px;
+  bottom: -5px;
+}
+.left_corner{
+  cursor: sw-resize;
+  position: absolute;
+  z-index: 11;
+  width: 14px;
+  height: 14px;
+  bottom: -5px;
+  left: -5px;
+}
+.left{
+  cursor: w-resize;
+  position: absolute;
+  z-index: 10;
+  width: 14px;
+  height: 100%;
+  left: -5px;
 }
 .frame{
   border: none;
@@ -69,7 +115,7 @@ canvas {
   flex-grow: 1;
   text-align: center;
 }
-.bottom{
+.ribbonBottom{
   flex-grow: 1;
   display: flex;
   justify-content: center;

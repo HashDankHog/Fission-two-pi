@@ -31,6 +31,7 @@ var test = new Win("window/parameter/parameter.html", 0);
 //updateCanvas(ctx);
 const windowClose = document.getElementById("windowClose") as HTMLCanvasElement;
 const plot = document.getElementById("plot") as HTMLCanvasElement;
+test.place([100,100], 450, 450);
 //windowClose.addEventListener("click", closeWindow);
 //plot.addEventListener("click", () => requestAnimationFrame(plotToCanvas));
 

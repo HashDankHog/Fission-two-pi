@@ -17,7 +17,7 @@ export function populateRibbon(obj: any) {
         sectionDiv.append(headerDiv);
 
         const bottomDiv = document.createElement("div");
-        bottomDiv.className = "bottom";
+        bottomDiv.className = "ribbonBottom";
         bottomDiv.id = "bottom";
 
         for (const item of section.item) {
