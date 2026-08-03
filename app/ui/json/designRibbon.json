@@ -1,103 +1,34 @@
 {
     "section": [
         {
-            "name": "Inspect",
+            "name": "Actions",
             "item": [
                 {
-                    "name": "measure",
-                    "src": "images/cad/measure.png",
+                    "name": "Angle",
+                    "src": "images/cad/angle.png",
                     "action": [
-                        "angle",
+                        "angle"
+                    ]
+                },
+                {
+                    "name": "Distance",
+                    "src": "images/cad/distance.png",
+                    "action": [
                         "distance"
                     ]
                 },
                 {
-                    "name": "info",
-                    "src": "images/cad/info.png",
+                    "name": "Fix",
+                    "src": "images/cad/fix.png",
                     "action": [
-                        "info"
+                        "fix"
                     ]
                 },
                 {
-                    "name": "parameter",
-                    "src": "images/cad/parameter.png",
+                    "name": "Add",
+                    "src": "images/cad/add.png",
                     "action": [
-                        "view"
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "Create",
-            "item": [
-                {
-                    "name": "Primitive",
-                    "src": "images/cad/primitive.png",
-                    "action": [
-                        "sphere",
-                        "cube",
-                        "cylinder"
-                    ]
-                },
-                {
-                    "name": "Sketch",
-                    "src": "images/cad/sketch.png",
-                    "action": [
-                        "new"
-                    ]
-                },
-                {
-                    "name": "plane",
-                    "src": "images/cad/plane.png",
-                    "action": [
-                        "new"
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "Modify",
-            "item": [
-                {
-                    "name": "boolean",
-                    "src": "images/cad/boolean.png",
-                    "action": [
-                        "union",
-                        "intersection",
-                        "subtract"
-                    ]
-                },
-                {
-                    "name": "sweep",
-                    "src": "images/cad/sweep.png",
-                    "action": [
-                        "new"
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "Constrain",
-            "item": [
-                {
-                    "name": "angle",
-                    "src": "images/cad/angle.png",
-                    "action": [
-                        "new"
-                    ]
-                },
-                {
-                    "name": "distance",
-                    "src": "images/cad/distance.png",
-                    "action": [
-                        "new"
-                    ]
-                },
-                {
-                    "name": "parameter",
-                    "src": "images/cad/parameter_2.png",
-                    "action": [
-                        "new"
+                        "Add"
                     ]
                 }
             ]
