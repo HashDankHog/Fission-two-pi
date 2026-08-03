@@ -1,4 +1,7 @@
-import { Constraint } from "../modules/constraint";
+const windowTauri: any = window;
+const { invoke } = windowTauri.parent.__TAURI__.core;
+
+import { Constraint } from "../modules/constraint.ts";
 
 function fix() {
     const p = Number((document.getElementById("p") as HTMLInputElement).value);

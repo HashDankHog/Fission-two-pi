@@ -1,11 +1,14 @@
+const windowTauri: any = window;
+const { invoke } = windowTauri.parent.__TAURI__.core;
+
 var segments = [];
 var parameter_num=0;
 function add_parameter() {
-    const row: any = document.createElement("tr");
+    const row = document.createElement("tr");
     
-    const body: any = document.querySelector("table");
-    const shitCode: any = document.getElementById(String(parameter_num));
-    row.innerHTML = shitCode.innerHTML;
+    const body = document.querySelector("table") as HTMLTableElement;
+
+    row.innerHTML = (document.getElementById(String(parameter_num)) as HTMLCanvasElement).innerHTML;
     const value = document.createElement("P");
     value.textContent = "0";
     value.className = "value";
@@ -14,7 +17,7 @@ function add_parameter() {
     parameter_num++;
     row.id=String(parameter_num);
     row.className="parameter";
-    row.querySelector(".paramNum").textContent=String(parameter_num);
+    (row.querySelector(".paramNum") as HTMLCanvasElement).textContent=String(parameter_num);
 
     body.append(row);
 }
@@ -50,7 +53,7 @@ const godhelpusall: any = document.getElementById("Add Segment");
 ouushi.addEventListener("click", update);
 godhelpusall.addEventListener("click", add_segment);
 
-window_tauri.plot = function plot(){
+windowTauri.plot = function plot(){
     var expressions = [];
     const inputFields: any = document.getElementsByClassName("expression");
     for (let i = 0; i < inputFields.length; i+= 1) {

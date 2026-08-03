@@ -66,7 +66,6 @@ export class Win {
         
     }
     place(pos: [number, number], width: number, height: number) {
-        console.log("c");
         const win = document.getElementById(this.#id.toString() + "_" + "window") as HTMLCanvasElement;
         win.style.left = pos[0].toString() + "px";
         win.style.top  = pos[1].toString() + "px";
@@ -123,4 +122,10 @@ export class Win {
         const win = document.getElementById(this.#id.toString() + "_" + "window") as HTMLCanvasElement;
         win.remove();
     }
+}
+
+var windows: Win[] = [];
+export function openWindow(module: string){
+    windows.push(new Win(("windows/" + module + ".html"), windows.length));
+    windows[windows.length-1].place([0,0], 450, 450);
 }

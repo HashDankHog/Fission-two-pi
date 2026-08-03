@@ -1,6 +1,17 @@
-export function populateRibbon(obj: any) {
+import { openWindow } from "./window.ts";
+
+type Ribbon = {"ribbon": {
+    "name": string,
+    "item": {
+        "name": string,
+        "src": string,
+        "action": string[]
+    }[]
+}[]};
+
+export function populateRibbon(obj: Ribbon) {
     const ribbon: any = document.querySelector(".ribbon");
-    for (const section of obj.section) {
+    for (const section of obj.ribbon) {
         const sectionDiv = document.createElement("div");
 
         sectionDiv.className = "section";
@@ -43,6 +54,8 @@ export function populateRibbon(obj: any) {
                 actionButton.className = "actionButton";
                 actionButton.id = action;
                 
+                actionButton.addEventListener("click", () => openWindow(action));
+
                 actionButton.textContent = action;
                 actionDiv.append(actionButton);
                 

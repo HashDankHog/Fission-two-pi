@@ -9,8 +9,7 @@ which is now all the way down to 1ms
 import { populateRibbon } from "./modules/ribbon.ts";
 import { updateCanvas } from "./modules/viewport.ts";
 import { Constraint } from "./modules/constraint.ts";
-import { Win } from "./modules/window.js";
-
+import { openWindow } from "./modules/window.ts";
 const window_tauri: any = window;
 const { invoke } = window_tauri.__TAURI__.core;
 
@@ -27,12 +26,9 @@ fetch(myRequest)
   })
   .catch(console.error);
 
-var test = new Win("windows/parameter.html", 0);
 //updateCanvas(ctx);
 const windowClose = document.getElementById("windowClose") as HTMLCanvasElement;
 const plot = document.getElementById("plot") as HTMLCanvasElement;
-test.place([100,100], 450, 450);
-//windowClose.addEventListener("click", closeWindow);
 //plot.addEventListener("click", () => requestAnimationFrame(plotToCanvas));
 
 
