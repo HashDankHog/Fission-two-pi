@@ -27,7 +27,7 @@ fetch(myRequest)
   })
   .catch(console.error);
 
-var test = new Win("window/parameter/parameter.html", 0);
+var test = new Win("windows/parameter.html", 0);
 //updateCanvas(ctx);
 const windowClose = document.getElementById("windowClose") as HTMLCanvasElement;
 const plot = document.getElementById("plot") as HTMLCanvasElement;
