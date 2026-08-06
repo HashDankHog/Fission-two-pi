@@ -27,7 +27,6 @@ fetch(myRequest)
   .catch(console.error);
 
 function plotToCanvas(){
-    invoke("clear_canvas");
     updateCanvas(ctx);
 }
 

@@ -74,11 +74,14 @@ impl Frame {
     pub fn draw_line(&mut self, _point1: (usize, usize), _point2: (usize, usize)) {
         unimplemented!()
     }
+    /// This is a temporary function that will be removed in a later version
     pub fn draw_profile(&mut self, profile: &mut Profile){
         let point_radius = 20;
         let (points, _) = profile.points();
         for point in points {
-            self.draw_rect((point.0 as usize -point_radius, point.1 as usize-point_radius), (point_radius*2,point_radius*2), Color(0,0,0,255));
+            if point.0 as usize >= point_radius && point.1 as usize >= point_radius{
+                self.draw_rect((point.0 as usize -point_radius, point.1 as usize-point_radius), (point_radius*2,point_radius*2), Color(0,0,0,255));
+            }
         }
         for connection in profile.connections.clone() {
             match connection {

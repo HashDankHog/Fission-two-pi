@@ -28,7 +28,7 @@ type Angle = {
         point_1: number,
         point_2: number,
         point_3: number,
-        angle: number
+        cosangle: number
     }
 };
 export type Constraint = FixX | FixY | FixZ | Distance | Angle;
