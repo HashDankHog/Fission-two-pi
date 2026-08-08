@@ -4,6 +4,7 @@ pub mod parse;
 pub mod function;
 pub mod geometry;
 pub mod vec;
+
 //TODO: remove and replace with From
 /// # THIS WILL BE REMOVED SHORTLY
 /// This trait is just a way to convert different generic numeric types into a common type,
@@ -29,3 +30,25 @@ impl<T: Into<f64>> Value for T {
     }
 }
 
+use std::ops::{Add, Div, Mul, Sub, Neg};
+pub trait NumBounds<T>: 
+    From<bool> + 
+    Add<Output = T> + 
+    Sub<Output = T> +
+    Mul<Output = T> +
+    Div<Output = T> + 
+    Neg<Output = T> + 
+    Clone + 
+    Value + 
+    PartialOrd {} 
+impl<T:
+    From<bool> + 
+    Add<Output = T> + 
+    Sub<Output = T> +
+    Mul<Output = T> +
+    Div<Output = T> + 
+    Neg<Output = T> + 
+    Clone + 
+    Value + 
+    PartialOrd
+    > NumBounds<T> for T {}
