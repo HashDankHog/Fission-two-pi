@@ -118,6 +118,14 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> NumVec<T> {
         Some(Self(result))
     } 
 
+    /// performs a vector projection
+    pub fn proj(&self, other: &Self) -> Option<Self> {
+        if self.0.len() != other.0.len() { return None; }
+        let mut scale = self.dot_prod(other).unwrap();
+        scale = scale / self.dot_prod(self).unwrap();
+        return Some(self.scale(scale));
+    }
+    
     pub fn scale(&self, by: T ) -> Self {
         let mut result = Self(Vec::new());
         for element in self.0.clone() {
@@ -136,5 +144,19 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> NumVec<T> {
 
     pub fn pop(&mut self) {
         self.0.pop();
+    }
+
+    
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn proj_test() {
+        let a = NumVec(vec![1.0,2.0]);
+        let b = NumVec(vec![2.0,0.0]);
+        let c = a.proj(&b).unwrap();
+        assert_eq!(c, NumVec(vec![0.4,0.8]));
     }
 }
