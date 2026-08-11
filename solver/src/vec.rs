@@ -1,8 +1,20 @@
 //! # Vec
 //! Adds just a couple of simple vector operations for numeric vectors
 
+
+
 use std::ops::{Add, Sub, Mul, Div, Neg};
-use crate::Value;
+use crate::{NumBounds, Value};
+
+
+fn sqrt<T: NumBounds<T>>(s: T)-> T{
+    let mut x = T::from(true);
+    let half = T::from(true)/(T::from(true)+T::from(true));
+    for _ in 0..10 {
+        x = half.clone()*(x.clone()+s.clone()/x);
+    }
+    x
+}
 
 #[derive(PartialEq, Debug, Clone)]
 /// Is a wrapper for a vector of numeric type.
@@ -14,17 +26,14 @@ use crate::Value;
 /// let C = A.add(&B).unwrap();
 /// assert_eq!(C.dot_prod(&B), Some(0));
 /// ```
-pub struct NumVec<T: From<bool> + 
-Add<Output = T>  + 
-Sub<Output = T>  +
-Mul<Output = T>  +
-Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd>(pub Vec<T>);
+pub struct NumVec<T: NumBounds<T>>(pub Vec<T>);
 
-impl <T: From<bool> + 
-Add<Output = T>  + 
-Sub<Output = T>  +
-Mul<Output = T>  +
-Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> NumVec<T> {
+impl <T: NumBounds<T>> NumVec<T> {
+    //finds the magnitude of the vector
+    pub fn magnitude(&self)-> T {
+        sqrt(self.dot_prod(&self).unwrap())
+    }
+
     /// Calculates the dot product of two numeric vectors
     /// # Examples
     /// ```
@@ -158,5 +167,11 @@ mod tests {
         let b = NumVec(vec![2.0,0.0]);
         let c = a.proj(&b).unwrap();
         assert_eq!(c, NumVec(vec![0.4,0.8]));
+    }
+
+    #[test]
+    fn sqrt_test() {
+        let a = sqrt(2.0);
+        assert_eq!(a, 1.414213562373095);
     }
 }
