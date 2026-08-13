@@ -1,6 +1,6 @@
 use crate::{NumBounds, matrix::Matrix, matrix::IdentityMatrix};
 use crate::vec::NumVec;
-use crate::matrix::Solution;
+use crate::matrix::Solution::{self, Unique};
 
 /// Is a structure for the Permutation, Lower, Upper decomposition for a matrix,
 /// it is particuarly useful for solving square systems of matrices, calculating determinants, and finding inverses
@@ -101,6 +101,18 @@ impl <T: NumBounds<T>> PLU<T> {
             }
         }
     }
+    pub fn inverse(&self) -> Option<Matrix<T>> {
+        let mut inverse = Matrix { elements: Vec::new(), rows: self.lower.rows, colums: 0};
+        for col in 0..self.lower.colums {
+            let mut sol = vec![T::from(false); self.lower.rows];
+            sol[col] = T::from(true);
+            match self.solve_for(NumVec(sol)) {
+                Unique(x) => inverse.append_colum(&x),
+                _ => return None
+            }
+        }
+        return Some(inverse);
+    }
 }
 impl <T: NumBounds<T>> From<&Matrix<T>> for PLU<T> {
     fn from(value: &Matrix<T>) -> Self {
@@ -118,7 +130,7 @@ impl <T: NumBounds<T>> From<&Matrix<T>> for PLU<T> {
             upper.swap_row(row, row_swap); //fix this mess please
             permutation.swap_row(row, row_swap);
             let pivot = upper.element(row, row);
-            if pivot.clone().value() > 0.1E-16 {
+            if pivot.clone().value().abs() > 0.1E-16 {
                 for row_2 in (row+1)..upper.rows {
                     let scale = upper.element(row_2,row)/pivot.clone();
                     upper.add_row(row_2, row, -scale.clone());
@@ -169,5 +181,15 @@ mod tests {
         let a = PLU::from(&mat);
         let s = NumVec(vec![9.0,7.0]);
         assert_eq!(a.solve_for(s),Solution::Unique(NumVec(vec![1.0,1.0])));
+    }
+    #[test]
+    fn inverse_exists(){
+        let mat = Matrix {
+            elements: vec![-1.0,1.5,1.0,-1.0],
+            rows: 2,
+            colums: 2
+        };
+        let a = PLU::from(&mat);
+        assert_eq!(a.inverse(),Some(Matrix { elements: vec![2.0,3.0,2.0,2.0], rows: 2, colums: 2 }));
     }
 }
