@@ -25,32 +25,38 @@ impl <T: NumBounds<T>> PLU<T> {
         if other.len() != mat.rows {
             panic!("issues wee woo wee woo");
         }
+        for row in 0..rows {
+            if let None = mat.find_pivot(row) {
+                continue;
+            }
+            let scale = mat.element(row,row);
+            mat.scale_row(row, T::from(true)/scale.clone());
+            other.0[row] = other.0[row].clone()/scale.clone();
+            mat.set(row,row,T::from(true));
+        }
         for row in (0..(rows-1)).map(|x| {
                 if forward {
                     x
                 } else {
                     rows-(x+1)
                 }
-            }) {
-                if let None = mat.find_pivot(row) {
-                    continue;
-                }
-                let scale = mat.element(row,row);
-                mat.scale_row(row, T::from(true)/scale.clone());
-                other.0[row] = other.0[row].clone()/scale.clone();
-                mat.set(row,row,T::from(false));
+            }){
+                let scale;
                 if forward {
-                    mat.add_row(row, row+1, scale);
-                    other.0[row+1] = other.0[row+1].clone() + other.0[row].clone();
+                    scale = mat.element(row+1,row);
+                    mat.add_row(row+1, row, -scale.clone());
+                    other.0[row+1] = other.0[row+1].clone() - scale*other.0[row].clone();
                 } else {
-                    mat.add_row(row, row-1, scale);
-                    other.0[row-1] = other.0[row-1].clone() + other.0[row].clone();
+                    scale = mat.element(row-1, row);
+                    mat.add_row(row-1, row, -scale.clone());
+                    other.0[row-1] = other.0[row-1].clone() - scale*other.0[row].clone();
                 }
+         
         }
         let mut homogeneous = Vec::new();
         for row in 0..rows {
             match mat.find_pivot(row) {
-                Some(x) => {},
+                Some(_) => {},
                 None => {
                     if other.0[row].clone().value() <= 0.1E-10 {
                         homogeneous.push(mat.row(row).unwrap());
@@ -152,5 +158,16 @@ mod tests {
         assert_eq!(a.permutation(),permutations);
         assert_eq!(a.lower(), lower);
         assert_eq!(a.upper(), upper);
+    }
+    #[test]
+    fn solve_for_unique(){
+        let mat = Matrix{
+            elements: vec![6.0,3.0,4.0,3.0], 
+            rows:2, 
+            colums:2
+        };
+        let a = PLU::from(&mat);
+        let s = NumVec(vec![9.0,7.0]);
+        assert_eq!(a.solve_for(s),Solution::Unique(NumVec(vec![1.0,1.0])));
     }
 }
