@@ -1,5 +1,6 @@
 use crate::{NumBounds, matrix::Matrix, matrix::IdentityMatrix};
 use crate::vec::NumVec;
+use crate::matrix::Solution;
 
 /// Is a structure for the Permutation, Lower, Upper decomposition for a matrix,
 /// it is particuarly useful for solving square systems of matrices, calculating determinants, and finding inverses
@@ -17,6 +18,82 @@ impl <T: NumBounds<T>> PLU<T> {
     }
     pub fn upper(&self) -> Matrix<T> {
         self.upper.clone()
+    }
+    fn substitute(&self, forward: bool, matrix: &Matrix<T>, mut other: NumVec<T>) -> Solution<T> {
+        let mut mat = matrix.clone();
+        let rows = mat.rows;
+        if other.len() != mat.rows {
+            panic!("issues wee woo wee woo");
+        }
+        for row in (0..(rows-1)).map(|x| {
+                if forward {
+                    x
+                } else {
+                    rows-(x+1)
+                }
+            }) {
+                if let None = mat.find_pivot(row) {
+                    continue;
+                }
+                let scale = mat.element(row,row);
+                mat.scale_row(row, T::from(true)/scale.clone());
+                other.0[row] = other.0[row].clone()/scale.clone();
+                mat.set(row,row,T::from(false));
+                if forward {
+                    mat.add_row(row, row+1, scale);
+                    other.0[row+1] = other.0[row+1].clone() + other.0[row].clone();
+                } else {
+                    mat.add_row(row, row-1, scale);
+                    other.0[row-1] = other.0[row-1].clone() + other.0[row].clone();
+                }
+        }
+        let mut homogeneous = Vec::new();
+        for row in 0..rows {
+            match mat.find_pivot(row) {
+                Some(x) => {},
+                None => {
+                    if other.0[row].clone().value() <= 0.1E-10 {
+                        homogeneous.push(mat.row(row).unwrap());
+                    } else {
+                        return Solution::Inconsistant
+                    }
+                }
+            }
+        }
+        if homogeneous.len() != 0 {
+            return Solution::Infinite { particular: other, homogeneous: homogeneous }
+        } else {
+            return Solution::Unique(other)
+        }
+    }
+    pub fn solve_for(&self, other: NumVec<T>) ->  Solution<T>{
+        let l = other.len();
+        let b = Matrix { elements: other.0, rows: l, colums: 1};
+        let s = NumVec(self.permutation.mult(&b).unwrap().elements);
+        let y = self.substitute(true, &self.lower, s);
+        let x;
+        let mut homogeneous = Vec::new();
+        match y {
+            Solution::Inconsistant => return Solution::Inconsistant,
+            Solution::Unique(z) => x=z,
+            Solution::Infinite { particular: p, homogeneous: h } => {
+                x=p;
+                for a in h{
+                    homogeneous.push(a);
+                }
+            }
+        }
+        let sol = self.substitute(false, &self.upper, x);
+        match sol {
+            Solution::Inconsistant => Solution::Inconsistant,
+            Solution::Unique(z) => Solution::Unique(z),
+            Solution::Infinite { particular: p, homogeneous: h } => {
+                for a in h{
+                    homogeneous.push(a);
+                }
+                Solution::Infinite { particular: p, homogeneous: homogeneous}
+            }
+        }
     }
 }
 impl <T: NumBounds<T>> From<&Matrix<T>> for PLU<T> {
