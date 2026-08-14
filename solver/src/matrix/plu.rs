@@ -139,7 +139,7 @@ impl <T: NumBounds<T>> From<&Matrix<T>> for PLU<T> {
                     lower.set(row_2,row,scale);
                 }
             }
-            if row < upper.rows-2 {
+            if row < upper.rows-2 && row_swap < upper.rows-2{
                 let temp = lower.element(row+1,row);
                 let other = lower.element(row_swap+1, row);
                 lower.set(row+1,row,other);
