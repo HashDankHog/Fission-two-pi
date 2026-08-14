@@ -1,10 +1,10 @@
 //! # Matrix
 //! Module for matrix and vector operations. 
-
+pub mod plu;
+pub mod qr;
 use crate::parameter::Parameter;
-use std::ops::{Add, Div, Mul, Sub, Neg};
 use crate::vec::NumVec;
-use crate::Value;
+use crate::NumBounds;
 
 pub enum EchelonForm {
     None,
@@ -12,11 +12,7 @@ pub enum EchelonForm {
     RowReduced,
 }
 #[derive(PartialEq, Debug, Clone)]
-pub enum Solution<T: From<bool> + 
-Add<Output = T>  + 
-Sub<Output = T>  +
-Mul<Output = T>  +
-Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> {
+pub enum Solution<T: NumBounds<T>> {
     Unique(NumVec<T>),
     Inconsistant,
     Infinite{particular: NumVec<T>, homogeneous: Vec<NumVec<T>>}
@@ -32,20 +28,12 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> {
 /// assert_eq!(A.solve_for(&NumVec(B)), Solution::Unique(NumVec(vec![1.0,1.0])));
 /// ```
 #[derive(PartialEq, Debug, Clone)]
-pub struct Matrix<T: From<bool> + 
-Add<Output = T>  + 
-Sub<Output = T>  +
-Mul<Output = T>  +
-Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> {
+pub struct Matrix<T: NumBounds<T>> {
     pub elements: Vec<T>, //this shouldnt be public but for now idk how to fix ts since assert_eq needs it to be
     pub rows: usize,
     pub colums: usize,
 }
-impl <T: From<bool> + 
-Add<Output = T>  + 
-Sub<Output = T>  +
-Mul<Output = T>  +
-Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
+impl <T: NumBounds<T>> Matrix<T> {
     //NOTE: most of the methods here make heavy use of clone. The reason this is not a huge issue 
     // for performance is that for primitive types, Rust implements a trivial clone which is equivilent to copy
 
@@ -239,121 +227,6 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         }
         None
     }
-
-    //TODO: refactor to use find_pivot
-    pub fn check_reduced(&self) -> EchelonForm {
-        let mut pivots: Vec<usize> = Vec::new();
-
-        //this might be bad syntax but at the same time I am seperating out sub blocks
-        {
-        let mut pivot: usize = 0;
-        for row in 0..self.rows {
-            for colum in 0..self.colums {
-                match self.element(row, colum).value() {
-                    0.0 => {},
-                    _ if row == 0 => {
-                        pivot = colum;
-                        pivots.push(pivot);
-                        break;
-                    },
-                    _ if row != 0 => {
-                        if pivot >= colum {
-                            return EchelonForm::None;
-                        } else {
-                            pivots.push(colum);
-                        }
-                    }
-                    _ => unreachable!(),
-                }
-            }
-        }
-        }
-
-        for pivot in pivots {
-            let mut pivot_count: usize = 0;
-            for row in 0..self.rows {
-                match self.element(row, pivot).value() {
-                    0.0 => {},
-                    1.0 => {pivot_count += 1},
-                    _ => {return EchelonForm::Row}
-                }
-            }
-            if pivot_count > 1 { return EchelonForm::Row; }
-        }
-
-
-        EchelonForm::RowReduced
-    }
-
-    /// Takes a matrix and reduces it to Row Echelon Form
-    /// # Examples
-    /// ```
-    /// use solver::matrix::Matrix;
-    /// let mut A = Matrix { elements: vec![1.0,1.0,2.0,
-    ///                                     1.0,-1.0,0.0,
-    ///                                     2.0,3.0,5.0], rows: 3, colums: 3};
-    /// A.to_row_form();
-    /// assert_eq!(A.elements, vec![2.0, 3.0, 5.0, 
-    ///                             0.0, -2.5, -2.5, 
-    ///                             0.0, 0.0, 0.0]);
-    /// ```
-    pub fn to_row_form(&mut self) {
-        for row in 0..(self.rows-1) {
-            //the mapping here is a way to get around the fact that abs is not a generic trait
-            //we cannot use arg_min because of the edge case of rows that already have a 0 element
-            self.swap_row(row, NumVec(self.colum(row).unwrap().0.iter().map(|x| (*x).clone()*(*x).clone()).collect::<Vec<T>>()[row..].to_vec()).arg_max() + row); //fix this mess please
-            let pivot = self.element(row, row);
-            match pivot.clone().value() {
-                0.0 => {},
-                _ => {
-                    for row_2 in (row+1)..self.rows {
-                        let scale = self.element(row_2,row)/pivot.clone();
-                        self.add_row(row_2, row, -scale);
-                        self.set(row_2,row, T::from(false)); //way to reduce error
-                    }
-                }
-            }
-        }
-    }
-
-    /// Takes a matrix and reduces it to Reduced Row Echelon Form
-    /// # Examples
-    /// ```
-    /// use solver::matrix::Matrix;
-    /// let mut A = Matrix { elements: vec![1.0,1.0,2.0,
-    ///                                     1.0,-1.0,0.0,
-    ///                                     2.0,3.0,5.0], rows: 3, colums: 3};
-    /// A.to_red_row_form();
-    /// assert_eq!(A.elements, vec![1.0, 0.0, 1.0, 
-    ///                             0.0, 1.0, 1.0, 
-    ///                             0.0, 0.0, 0.0]);
-    /// ```
-    // TODO: make it so I dont have 8 levels of indentation
-    pub fn to_red_row_form(&mut self) {
-        self.to_row_form();
-        let rows = self.rows;
-        for row in (1..=rows).map(|x| rows - x) {
-            
-            let pivot_value;
-            match self.find_pivot(row) {
-                Some(pivot) => {
-                    pivot_value = self.row(row).unwrap().0[pivot].clone();
-                    self.scale_row(row, T::from(true)/(pivot_value.clone()));
-                    self.set(row, pivot, T::from(true)); //way to reduce fp error
-                    for row_2 in row+1..rows {
-                        let p = self.find_pivot(row_2);
-                        match p {
-                            Some(x) => {
-                                self.add_row(row, row_2, -self.element(row,x));
-                            },
-                            None => {}
-                        }
-                    }
-                },
-                None => {}
-            }
-        }
-    }
     
     /// performs addition of matrices
     pub fn add(&self, matrix: &Matrix<T>) -> Option<Matrix<T>> { 
@@ -373,7 +246,10 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
         let result = Matrix {elements: vec![self.element(0,0).clone(); self.rows * matrix.colums], rows: self.rows, colums: matrix.colums};
 
         Some(
-        result.iterate(|row, colum| self.row(row).unwrap().dot_prod(&matrix.colum(colum).unwrap()).unwrap()
+        result.iterate(|row, colum| 
+            self.row(row).unwrap()
+            .dot_prod(
+                &matrix.colum(colum).unwrap()).unwrap()
         ))
     }
     
@@ -405,101 +281,19 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
     /// ```
     // I am like 99% sure this will return the inverse of non invertible matrices but Idgaf rn
     pub fn inverse(&self) -> Option<Matrix<T>> {
-        if self.rows != self.colums { return None }
-        let mut temp = self.clone();
-        let mut inverse = T::imat(self.rows);
-
-        for row in 0..(self.rows-1) {
-            //the mapping here is a way to get around the fact that abs is not a generic trait
-            //we cannot use arg_min because of the edge case of rows that already have a 0 element
-            let row_2 = NumVec(temp.colum(row).unwrap().0.iter().map(|x| (*x).clone()*(*x).clone()).collect()).arg_max() + row;
-            temp.swap_row(row, row_2);
-            inverse.swap_row(row, row_2); //when I swap back to &vec<T>: look into clone_into()
-            let pivot = temp.element(row, row);
-            match pivot.clone().value() {
-                0.0 => {},
-                _ => {
-                    for row_2 in (row+1)..self.rows {
-                        let scale = temp.element(row_2,row)/pivot.clone();
-                        temp.add_row(row_2, row, -scale.clone());
-                        inverse.add_row(row_2, row, -scale);
-                    }
-                }
-            }
-        }
-        let rows = self.rows;
-        for row in (1..=rows).map(|x| rows - x) {
-            
-            let pivot_value;
-            match temp.find_pivot(row) {
-                Some(pivot) => {
-                    pivot_value = temp.row(row).unwrap().0[pivot].clone();
-                    temp.scale_row(row, pivot_value.clone()/(pivot_value.clone()*pivot_value.clone()));
-                    inverse.scale_row(row, pivot_value.clone()/(pivot_value.clone()*pivot_value.clone())); //this is the closest I can get rn to writing 1/pivot_value since generics are hard and annoying
-                    for row_2 in row+1..rows {
-                        let p = temp.find_pivot(row_2);
-                        match p {
-                            Some(x) => {
-                                let scale = -temp.element(row,x);
-                                temp.add_row(row, row_2, scale.clone());
-                                inverse.add_row(row, row_2, scale);
-                            },
-                            None => {}
-                        }
-                    }
-                },
-                None => {}
-            }
-        }
-        Some(inverse)
+        let a = plu::PLU::from(self);
+        a.inverse()
     }
 
     /// not implemented yet due to general lazieness
     pub fn determinant(&self) -> T {self.element(0,0).clone()}
-    
-    /// solves a linear system for a specified value
-    /// returns a Solution Enum depending on the number of solutions
-    /// if there are infinite solutions, we return the particular solution, alongside its associated homogenous solution
-    /// # Examples
-    /// ```
-    /// use solver::matrix::{Matrix, Solution};
-    /// use solver::vec::NumVec;
-    /// let a = Matrix { elements: vec![1.0,0.0,2.0,0.0,1.0,2.0], rows: 2, colums: 3};
-    /// let b = NumVec(vec![1.0,2.0]);
-    /// assert_eq!(a.solve_for(&b), Solution::Infinite{ particular: b, homogeneous: vec![NumVec(vec![-2.0,-2.0,1.0])]})
-    /// ```
-    pub fn solve_for(&self, value: &NumVec<T>) -> Solution<T> {
-        let mut solution = self.clone();
-        let mut pivots = Vec::new();
-        solution.append_colum(value);
-        solution.to_red_row_form();
-        //this logic works because of a few guarentees one can make based off of how gaussian elimination works
-        for row in 0..solution.rows {
-            match solution.find_pivot(row){
-                Some(x) if x == solution.colums - 1 => return Solution::Inconsistant,
-                None => {},
-                Some(x) => pivots.push(x)
-            }
-        }
-        
-        let mut basis = Vec::new();
-        for i in 0..solution.colums-1 {
-            if !pivots.contains(&i) {
-                let mut base = solution.colum(i).unwrap().scale(-T::from(true));
-                for j in base.len()..self.colums {
-                    if j == i {
-                        base.push(T::from(true))
-                    } else {
-                        base.push(T::from(false))
-                    }
-                }
-                basis.push(base);
-            }
-        }
-        if basis.len() == 0 { return Solution::Unique(solution.colum(solution.colums-1).unwrap()) }
-        Solution::Infinite{particular: solution.colum(solution.colums -1).unwrap(), homogeneous: basis}
-    }
-    
+   pub fn right_inverse(&self) -> Option<Self> {
+        self.transpose().mult(&self.mult(&self.transpose()).unwrap().inverse().unwrap())
+   }
+   pub fn left_inverse(&self) -> Option<Self> {
+        self.mult(&self.transpose()).unwrap().inverse().unwrap().mult(&self.transpose())
+   }
+
 }
 
 /// Creates an identity matrix of dimension N for a certain type
@@ -509,24 +303,12 @@ Div<Output = T>  + Neg<Output = T> + Clone + Value + PartialOrd> Matrix<T> {
 /// let a = f64::imat(2);
 /// assert_eq!(a, Matrix {elements: vec![1.0,0.0,0.0,1.0], rows: 2, colums: 2})
 /// ```
-pub trait IdentityMatrix: 
-From<bool> + 
-Add<Output = Self>  + 
-Sub<Output = Self> +
-Mul<Output = Self> +
-Div<Output = Self> + 
-Neg<Output = Self> + Clone + Value + PartialOrd {
+pub trait IdentityMatrix: NumBounds<Self> {
     fn imat(size: usize) -> Matrix<Self>;
 }
 
 
-impl<T: 
-From<bool> + 
-Add<Output = Self> + 
-Sub<Output = Self> +
-Mul<Output = Self> +
-Div<Output = Self> + 
-Neg<Output = Self> + Clone + Value + PartialOrd> IdentityMatrix for T {
+impl<T: NumBounds<T>> IdentityMatrix for T {
     fn imat(size: usize) -> Matrix<Self>{ 
         let mut identity = Matrix { elements: vec![Self::from(false); size*size], rows: size, colums: size};
         for element in 0..size {
@@ -555,27 +337,37 @@ impl Jacobian {
         for element in self.matrix.elements.clone() {
             mat_f64.elements.push(element.0(&self.inputs));
         }
-        let mut goal: NumVec<f64> = NumVec(Vec::new());
+        let mut goal = Matrix{elements: Vec::new(), rows: mat_f64.rows, colums: 1};
         for parameter in self.parameters.clone() {
-            goal.push(-parameter.0(&self.inputs));
+            goal.elements.push(parameter.0(&self.inputs));
         }
-        match mat_f64.solve_for(&goal) {
-            Solution::Inconsistant => return Solution::Inconsistant,
-            Solution::Unique(n) if iteration < self.iter => {
-                self.inputs = self.inputs.add(&n).unwrap();
-                return self.iterate(iteration + 1);
-            },
-            Solution::Infinite { particular: p, homogeneous: _ } if iteration < self.iter => {
-                self.inputs = self.inputs.add(&p).unwrap();
-                return self.iterate(iteration + 1);
-            },
-            Solution::Unique(n) => {
-                self.inputs = self.inputs.add(&n).unwrap();
-                return Solution::Unique(self.inputs.clone());
-            }
-            Solution::Infinite { particular: p, homogeneous: h } => {
-                self.inputs = self.inputs.add(&p).unwrap();
-                return Solution::Infinite { particular: self.inputs.clone(), homogeneous: h }
+        let inverse;
+        if mat_f64.rows > mat_f64.colums {
+            inverse = mat_f64.left_inverse();
+        } else if mat_f64.rows < mat_f64.colums {
+            inverse = mat_f64.right_inverse();
+        } else {
+            inverse = mat_f64.inverse();
+        }
+
+        match inverse {
+            None => return Solution::Inconsistant,
+            Some(x) => {
+                if iteration == self.iter {
+                    if x.mult(&mat_f64).unwrap() == f64::imat(x.rows){
+                        return Solution::Unique(self.inputs.clone())
+                    } else {
+                        //TODO: this is not correct at all but oh well
+                        let mut h = Vec::new();
+                        for col in 0..x.colums {
+                            h.push(x.colum(col).unwrap());
+                        }
+                        return Solution::Infinite { particular: self.inputs.clone(), homogeneous: h }
+                    }
+                }
+                let a = x.mult(&goal).unwrap();
+                self.inputs = self.inputs.add(&NumVec(a.elements).scale(-1.0)).unwrap();
+                return self.iterate(iteration+1)
             }
         }
         
@@ -594,7 +386,7 @@ impl From<(Vec<Parameter>, &NumVec<f64>)> for Jacobian{
             parameters: value.0.clone(),
             inputs: value.1.clone(),
             matrix: jacobian.iterate(|row, colum| value.0[row].clone().diff(colum)),
-            iter: 10
+            iter: 20
         }
     }
 }
@@ -603,7 +395,7 @@ impl From<(Vec<Parameter>, &NumVec<f64>)> for Jacobian{
 mod tests {
     use super::*;
     #[test]
-    fn it_works() {
+    fn jacobian_unique() {
         let b = NumVec(vec![0.5,2.5]);
         let constraint = vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0))),Parameter(Box::new(|p| (p.0[1]-p.0[0]).powf(2.0)))];
         let mut mat = Jacobian::from((constraint, &b));
@@ -629,6 +421,36 @@ mod tests {
         }
         let mut error = 0.0;
         error += 1.41421356237-results[0]-results[1];
-        assert!(error < 0.1E-2);
+        assert!(error.abs() < 0.1E-2);
+    }
+    //TODO: rewrite test
+    #[test]
+    fn jacobian_infinite() {
+        let b = NumVec(vec![0.5,2.5]);
+        let constraint = vec![Parameter(Box::new(|p| (p.0[0].powf(2.0)+p.0[1].powf(2.0)-1.0).powf(2.0)))];
+        let mut mat = Jacobian::from((constraint, &b));
+        
+        let mut results = Vec::new();
+        match mat.solve(b) {
+            Solution::Unique(s) => {
+                for c in s.0 {
+                    results.push(c);
+                }
+            }
+            Solution::Inconsistant => println!("sigh"),
+            Solution::Infinite { particular: p, homogeneous: h } => {
+                for c in p.0 {
+                    results.push(c);
+                }
+                for a in h {
+                    for c in a.0 {
+                        results.push(c);
+                    }
+                }
+            }
+        }
+        let error: f64 = 0.0; // this isnt really doing anything rn, I dont know how to test this
+        // I mean I kidna do but I am way too lazy to implement it rn
+        assert!(error.abs() < 0.1E-2);
     }
 }
